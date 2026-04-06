@@ -338,26 +338,6 @@ GW_TOOLS = [
         description="Disable PII anonymization. Query results will contain original data.",
         inputSchema={"type": "object", "properties": {}},
     ),
-    # --- ITS Search ---
-    Tool(
-        name="its_search",
-        description=(
-            "Search 1C ITS documentation and standard configurations via 1C:Naparnik API. "
-            "Ask questions about 1C platform, BSP (Standard Subsystem Library), "
-            "typical configurations, and best practices. "
-            "Requires NAPARNIK_API_KEY in .env file (get at https://code.1c.ai)."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Question about 1C platform, BSP, or standard configurations",
-                },
-            },
-            "required": ["query"],
-        },
-    ),
     # --- Metadata cache ---
     Tool(
         name="invalidate_metadata_cache",
@@ -504,9 +484,32 @@ async def read_resource(uri) -> str:
 # MCP Tools — list & dispatch
 # ---------------------------------------------------------------------------
 
+_ITS_SEARCH_TOOL = Tool(
+    name="its_search",
+    description=(
+        "Search 1C ITS documentation and standard configurations via 1C:Naparnik API. "
+        "Ask questions about 1C platform, BSP (Standard Subsystem Library), "
+        "typical configurations, and best practices."
+    ),
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Question about 1C platform, BSP, or standard configurations",
+            },
+        },
+        "required": ["query"],
+    },
+)
+
+
 @server.list_tools()
 async def list_tools() -> list[Tool]:
-    return GW_TOOLS + manager.get_all_tools()
+    tools = GW_TOOLS + manager.get_all_tools()
+    if settings.naparnik_api_key:
+        tools.append(_ITS_SEARCH_TOOL)
+    return tools
 
 
 def _get_session_active() -> 'DatabaseInfo | None':
