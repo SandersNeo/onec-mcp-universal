@@ -821,10 +821,10 @@ AI вызовет инструмент <code>connect_database</code> с указ
 
 <!-- ================================================================== -->
 <h2 id="remote-ru">5. Удалённое подключение</h2>
-<p>Если сервер 1С находится на удалённой машине (пользователи подключаются к нему через тонкий клиент или веб-клиент), шлюз можно развернуть прямо на этом сервере.</p>
+<p>Если сервер 1С находится на удалённой машине и пользователи подключаются к нему через тонкий клиент или веб-клиент, шлюз можно развернуть прямо на этом сервере. AI-ассистент на рабочей станции разработчика подключится к шлюзу по сети.</p>
 
 <h3>Когда это нужно</h3>
-<p>Типичная ситуация: сервер 1С стоит в серверной или в облаке. Пользователи работают через тонкий клиент. AI-ассистент (Claude Code, Cursor) запущен на рабочей станции разработчика. В этом случае шлюз нужно поставить на сервер 1С, а AI-ассистент подключится к нему по сети.</p>
+<p>Типичная ситуация: сервер 1С стоит в серверной или в облаке. Пользователи работают через тонкий клиент. AI-ассистент (Claude Code, Cursor) запущен на рабочей станции разработчика. Платформа 1С не установлена на рабочей станции - только тонкий клиент. В этом случае шлюз нужно поставить на сервер 1С, а AI-ассистент подключится к нему по сети через порт 8080.</p>
 
 <h3>Развёртывание на сервере 1С</h3>
 <ol>
@@ -833,50 +833,72 @@ AI вызовет инструмент <code>connect_database</code> с указ
 <li>Создайте <code>.env</code> файл: <code>cp .env.example .env</code></li>
 <li>Укажите путь к платформе: <code>PLATFORM_PATH=/opt/1cv8/x86_64/8.3.27.2074</code></li>
 <li>Запустите контейнеры: <code>docker compose up -d</code></li>
-<li>Откройте порт 8080 в файрволе сервера.</li>
+<li>Откройте порт 8080 в файрволе сервера: <code>sudo ufw allow 8080/tcp</code></li>
 </ol>
+<p>Проверьте доступность с рабочей станции: <code>curl http://server-erp:8080/health</code></p>
 
 <h3>Подключение AI-ассистента</h3>
 <p>На рабочей станции разработчика укажите адрес сервера вместо localhost:</p>
-<pre><code>claude mcp add onec --transport http http://server-erp:8080/mcp</code></pre>
-<p>Для Cursor: Settings -> MCP -> Add, URL: <code>http://server-erp:8080/mcp</code></p>
-<p>Здесь <code>server-erp</code> - имя или IP-адрес сервера 1С.</p>
+<pre><code># Claude Code
+claude mcp add onec --transport http http://server-erp:8080/mcp
+
+# Cursor: Settings -> MCP -> Add new MCP server
+# URL: http://server-erp:8080/mcp
+
+# Windsurf / другие MCP-клиенты
+# URL: http://server-erp:8080/mcp</code></pre>
+<p>Здесь <code>server-erp</code> - имя или IP-адрес сервера 1С (например, <code>192.168.1.100</code>).</p>
+<p>Дашборд тоже будет доступен удалённо: <code>http://server-erp:8080/dashboard</code></p>
 
 <h3>Подключение EPF</h3>
 <p>Обработку MCPToolkit.epf нужно открыть в тонком клиенте 1С на сервере. В поле "Адрес шлюза" укажите <code>http://localhost:8080</code>, так как шлюз и обработка работают на одной машине. Нажмите "Подключиться".</p>
+<p>Если 1С-клиент запущен на рабочей станции (не на сервере), в поле "Адрес шлюза" укажите адрес сервера: <code>http://server-erp:8080</code>.</p>
 
 <h3>Что работает при удалённом подключении</h3>
+<p>Большинство инструментов работают без ограничений. Всё, что проходит через EPF (данные, метаданные, журнал), работает одинаково - локально и удалённо. BSL-навигация требует отдельной настройки.</p>
 <table>
-<tr><th>Возможность</th><th>Статус</th><th>Примечание</th></tr>
-<tr><td>Запросы к БД (<code>execute_query</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Все запросы выполняются через EPF на сервере</td></tr>
-<tr><td>Выполнение кода (<code>execute_code</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Код выполняется на сервере 1С</td></tr>
-<tr><td>Метаданные (<code>get_metadata</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Структура конфигурации через EPF</td></tr>
-<tr><td>Журнал регистрации (<code>get_event_log</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Чтение журнала через EPF</td></tr>
-<tr><td>Права доступа (<code>get_access_rights</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Анализ ролей через EPF</td></tr>
-<tr><td>Ссылки (<code>get_object_by_link</code>, <code>get_link_of_object</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Навигационные ссылки через EPF</td></tr>
-<tr><td>Поиск использований (<code>find_references_to_object</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Поиск ссылок через EPF</td></tr>
-<tr><td>Документация платформы (<code>search</code>, <code>info</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Документация хранится в контейнере</td></tr>
-<tr><td>Снимок формы (<code>capture_form</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Скриншот текущей формы через EPF</td></tr>
-<tr><td>Валидация запросов (<code>validate_query</code>)</td><td><span style="color:#22c55e">Работает</span></td><td>Проверка синтаксиса запросов</td></tr>
-<tr><td>Навигация по BSL (<code>definition</code>, <code>symbol_explore</code>)</td><td><span style="color:#eab308">Требует настройки</span></td><td>Нужно выгрузить BSL-файлы на сервер</td></tr>
-<tr><td>Выгрузка BSL (<code>export_bsl_sources</code>)</td><td><span style="color:#eab308">Требует настройки</span></td><td>Нужен сервис выгрузки или ibcmd на сервере</td></tr>
+<tr><th>Категория</th><th>Инструменты</th><th>Статус</th><th>Примечание</th></tr>
+<tr><td>Запросы к данным</td><td><code>execute_query</code>, <code>execute_code</code></td><td><span style="color:#22c55e">Работает</span></td><td>Все запросы выполняются через EPF на сервере</td></tr>
+<tr><td>Метаданные</td><td><code>get_metadata</code>, <code>get_access_rights</code></td><td><span style="color:#22c55e">Работает</span></td><td>Структура конфигурации и роли через EPF</td></tr>
+<tr><td>Журнал регистрации</td><td><code>get_event_log</code></td><td><span style="color:#22c55e">Работает</span></td><td>Чтение и фильтрация журнала через EPF</td></tr>
+<tr><td>Ссылки и поиск</td><td><code>get_object_by_link</code>, <code>get_link_of_object</code>, <code>find_references_to_object</code></td><td><span style="color:#22c55e">Работает</span></td><td>Навигационные ссылки и поиск использований</td></tr>
+<tr><td>Документация</td><td><code>search</code>, <code>info</code>, <code>getMembers</code>, <code>getMember</code>, <code>getConstructors</code></td><td><span style="color:#22c55e">Работает</span></td><td>Документация хранится в контейнере на сервере</td></tr>
+<tr><td>Снимки форм</td><td><code>capture_form</code></td><td><span style="color:#22c55e">Работает</span></td><td>Скриншот текущей формы через EPF</td></tr>
+<tr><td>Валидация запросов</td><td><code>validate_query</code></td><td><span style="color:#22c55e">Работает</span></td><td>Статическая + серверная проверка</td></tr>
+<tr><td>Анонимизация</td><td><code>enable_anonymization</code>, <code>disable_anonymization</code></td><td><span style="color:#22c55e">Работает</span></td><td>Маскировка ПД на стороне шлюза</td></tr>
+<tr><td>Поиск по ИТС</td><td><code>its_search</code></td><td><span style="color:#22c55e">Работает</span></td><td>API 1С:Напарника из контейнера на сервере</td></tr>
+<tr><td>Управление</td><td><code>connect_database</code>, <code>switch_database</code>, <code>list_databases</code> и др.</td><td><span style="color:#22c55e">Работает</span></td><td>Управление базами через шлюз</td></tr>
+<tr><td>BSL-навигация</td><td><code>definition</code>, <code>symbol_explore</code>, <code>call_graph</code>, <code>hover</code> и др.</td><td><span style="color:#eab308">Требует настройки</span></td><td>Нужно выгрузить BSL-файлы на сервер</td></tr>
+<tr><td>Выгрузка BSL</td><td><code>export_bsl_sources</code></td><td><span style="color:#eab308">Требует настройки</span></td><td>Нужен сервис выгрузки или ibcmd на сервере</td></tr>
 </table>
 
+<h3>Поведение обработки MCPToolkit.epf</h3>
+<p>При подключении обработка определяет, работает ли шлюз локально или удалённо. Если адрес шлюза отличается от <code>localhost</code> или <code>127.0.0.1</code>, обработка:</p>
+<ul>
+<li>Показывает предупреждение в журнале: "Удалённый шлюз, некоторые функции могут быть ограничены"</li>
+<li>Кнопка "Выгрузить BSL" работает только если на сервере запущен сервис выгрузки (<code>export-host-service.py</code>)</li>
+<li>Все остальные функции (подключение, отключение, выполнение команд) работают без ограничений</li>
+</ul>
+<p>Если шлюз развёрнут на том же сервере, где работает 1С, в поле "Адрес шлюза" оставьте <code>http://localhost:8080</code>. В этом случае обработка работает в полном режиме.</p>
+
 <h3>Настройка навигации по BSL на удалённом сервере</h3>
-<p>Навигация по BSL (переход к определению, поиск символов, граф вызовов) работает только при наличии BSL-файлов на сервере. Есть два способа их получить:</p>
-<p><b>Способ 1. Выгрузка через EPF:</b></p>
+<p>Навигация по BSL (переход к определению, поиск символов, граф вызовов) работает только при наличии выгруженных BSL-файлов на сервере. Без них инструменты <code>definition</code>, <code>symbol_explore</code>, <code>call_graph</code> вернут пустые результаты. Есть два способа получить BSL-файлы:</p>
+
+<p><b>Способ 1. Выгрузка через EPF (автоматический):</b></p>
 <ol>
 <li>Запустите сервис выгрузки на сервере: <code>python3 tools/export-host-service.py --port 8082 --workspace /home/user/1c-projects</code></li>
-<li>Нажмите "Выгрузить BSL" в обработке MCPToolkit.epf.</li>
-<li>Дождитесь завершения (3-5 минут для крупных конфигураций).</li>
+<li>Убедитесь, что в <code>.env</code> указан: <code>EXPORT_HOST_URL=http://localhost:8082</code></li>
+<li>Откройте MCPToolkit.epf в 1С, нажмите "Выгрузить BSL"</li>
+<li>Дождитесь завершения (3-5 минут для ERP, 1-2 минуты для небольших конфигураций)</li>
 </ol>
+
 <p><b>Способ 2. Ручной экспорт и копирование:</b></p>
 <ol>
-<li>Выгрузите конфигурацию в XML/BSL на любой машине с платформой 1С.</li>
-<li>Скопируйте BSL-файлы на сервер в каталог проекта (например, <code>/home/user/1c-projects/ERP_Test</code>).</li>
-<li>Попросите AI-ассистент переиндексировать: "Переиндексируй BSL-файлы".</li>
+<li>Выгрузите конфигурацию в XML на любой машине с платформой 1С: <code>ibcmd /S server-erp/ERP_Test /DumpConfigToFiles /home/user/export</code></li>
+<li>Скопируйте файлы на сервер: <code>scp -r /home/user/export user@server-erp:/home/user/1c-projects/ERP_Test</code></li>
+<li>Попросите AI-ассистент переиндексировать: "Переиндексируй BSL-файлы"</li>
 </ol>
-<p>После этого навигация по BSL будет работать полностью.</p>
+<p>После выгрузки AI получит полный доступ к навигации: переход к определению, граф вызовов, поиск символов, диагностика ошибок, переименование.</p>
 
 <h3>Схема удалённого подключения</h3>
 <pre><code>Рабочая станция                     Сервер 1С (server-erp)
@@ -899,7 +921,7 @@ AI вызовет инструмент <code>connect_database</code> с указ
                                      | Информационная база       |
                                      +---------------------------+</code></pre>
 
-<div class="warn"><p><b>Безопасность:</b> Порт 8080 открывает доступ ко всем инструментам шлюза, включая выполнение кода и запросы к БД. Ограничьте доступ по IP-адресам через файрвол. Не открывайте порт в интернет без дополнительной защиты (VPN, SSH-туннель).</p></div>
+<div class="warn"><p><b>Безопасность:</b> Порт 8080 открывает доступ ко всем инструментам шлюза, включая выполнение кода и запросы к БД. Ограничьте доступ по IP-адресам через файрвол. Не открывайте порт в интернет без дополнительной защиты (VPN, SSH-туннель). Пример ограничения: <code>sudo ufw allow from 192.168.1.0/24 to any port 8080</code></p></div>
 
 <!-- ================================================================== -->
 <h2 id="tools-ru">6. MCP-инструменты (полный список)</h2>
@@ -1404,10 +1426,10 @@ The AI will call the <code>connect_database</code> tool with the specified param
 
 <!-- ================================================================== -->
 <h2 id="remote-en">5. Remote Deployment</h2>
-<p>If the 1C server is on a remote machine (users connect to it via thin client or web client), the gateway can be deployed directly on that server.</p>
+<p>If the 1C server is on a remote machine and users connect to it via thin client or web client, the gateway can be deployed directly on that server. The AI assistant on the developer's workstation will connect to the gateway over the network.</p>
 
 <h3>When this is needed</h3>
-<p>Typical situation: the 1C server is in a server room or in the cloud. Users work via thin client. The AI assistant (Claude Code, Cursor) runs on the developer's workstation. In this case, deploy the gateway on the 1C server, and the AI assistant will connect to it over the network.</p>
+<p>Typical situation: the 1C server is in a server room or in the cloud. Users work via thin client. The AI assistant (Claude Code, Cursor) runs on the developer's workstation. The 1C platform is not installed on the workstation - only the thin client. In this case, deploy the gateway on the 1C server, and the AI assistant will connect to it over the network through port 8080.</p>
 
 <h3>Deployment on the 1C server</h3>
 <ol>
@@ -1416,50 +1438,72 @@ The AI will call the <code>connect_database</code> tool with the specified param
 <li>Create the <code>.env</code> file: <code>cp .env.example .env</code></li>
 <li>Set the platform path: <code>PLATFORM_PATH=/opt/1cv8/x86_64/8.3.27.2074</code></li>
 <li>Start the containers: <code>docker compose up -d</code></li>
-<li>Open port 8080 in the server firewall.</li>
+<li>Open port 8080 in the server firewall: <code>sudo ufw allow 8080/tcp</code></li>
 </ol>
+<p>Verify accessibility from the workstation: <code>curl http://server-erp:8080/health</code></p>
 
 <h3>Connecting the AI assistant</h3>
 <p>On the developer's workstation, use the server address instead of localhost:</p>
-<pre><code>claude mcp add onec --transport http http://server-erp:8080/mcp</code></pre>
-<p>For Cursor: Settings -> MCP -> Add, URL: <code>http://server-erp:8080/mcp</code></p>
-<p>Here <code>server-erp</code> is the hostname or IP address of the 1C server.</p>
+<pre><code># Claude Code
+claude mcp add onec --transport http http://server-erp:8080/mcp
+
+# Cursor: Settings -> MCP -> Add new MCP server
+# URL: http://server-erp:8080/mcp
+
+# Windsurf / other MCP clients
+# URL: http://server-erp:8080/mcp</code></pre>
+<p>Here <code>server-erp</code> is the hostname or IP address of the 1C server (e.g. <code>192.168.1.100</code>).</p>
+<p>The dashboard is also accessible remotely: <code>http://server-erp:8080/dashboard</code></p>
 
 <h3>Connecting EPF</h3>
-<p>Open the MCPToolkit.epf data processor in the 1C thin client on the server. In the "Gateway address" field enter <code>http://localhost:8080</code>, since the gateway and the data processor are on the same machine. Click "Connect".</p>
+<p>Open the MCPToolkit.epf data processor in the 1C thin client on the server. In the "Gateway address" field enter <code>http://localhost:8080</code>, since the gateway and the data processor run on the same machine. Click "Connect".</p>
+<p>If the 1C client runs on the workstation (not on the server), enter the server address in the "Gateway address" field: <code>http://server-erp:8080</code>.</p>
 
 <h3>What works in remote mode</h3>
+<p>Most tools work without limitations. Everything that goes through EPF (data, metadata, event log) works the same way - locally and remotely. BSL navigation requires separate setup.</p>
 <table>
-<tr><th>Feature</th><th>Status</th><th>Note</th></tr>
-<tr><td>DB queries (<code>execute_query</code>)</td><td><span style="color:#22c55e">Works</span></td><td>All queries are executed through EPF on the server</td></tr>
-<tr><td>Code execution (<code>execute_code</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Code runs on the 1C server</td></tr>
-<tr><td>Metadata (<code>get_metadata</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Configuration structure through EPF</td></tr>
-<tr><td>Event log (<code>get_event_log</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Event log reading through EPF</td></tr>
-<tr><td>Access rights (<code>get_access_rights</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Role analysis through EPF</td></tr>
-<tr><td>Object links (<code>get_object_by_link</code>, <code>get_link_of_object</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Navigation links through EPF</td></tr>
-<tr><td>Reference search (<code>find_references_to_object</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Reference search through EPF</td></tr>
-<tr><td>Platform documentation (<code>search</code>, <code>info</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Documentation is stored in the container</td></tr>
-<tr><td>Form screenshot (<code>capture_form</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Current form screenshot through EPF</td></tr>
-<tr><td>Query validation (<code>validate_query</code>)</td><td><span style="color:#22c55e">Works</span></td><td>Query syntax checking</td></tr>
-<tr><td>BSL navigation (<code>definition</code>, <code>symbol_explore</code>)</td><td><span style="color:#eab308">Requires setup</span></td><td>BSL files must be exported to the server</td></tr>
-<tr><td>BSL export (<code>export_bsl_sources</code>)</td><td><span style="color:#eab308">Requires setup</span></td><td>Needs export service or ibcmd on the server</td></tr>
+<tr><th>Category</th><th>Tools</th><th>Status</th><th>Note</th></tr>
+<tr><td>Data queries</td><td><code>execute_query</code>, <code>execute_code</code></td><td><span style="color:#22c55e">Works</span></td><td>All queries are executed through EPF on the server</td></tr>
+<tr><td>Metadata</td><td><code>get_metadata</code>, <code>get_access_rights</code></td><td><span style="color:#22c55e">Works</span></td><td>Configuration structure and roles through EPF</td></tr>
+<tr><td>Event log</td><td><code>get_event_log</code></td><td><span style="color:#22c55e">Works</span></td><td>Reading and filtering event log through EPF</td></tr>
+<tr><td>Links and search</td><td><code>get_object_by_link</code>, <code>get_link_of_object</code>, <code>find_references_to_object</code></td><td><span style="color:#22c55e">Works</span></td><td>Navigation links and reference search</td></tr>
+<tr><td>Documentation</td><td><code>search</code>, <code>info</code>, <code>getMembers</code>, <code>getMember</code>, <code>getConstructors</code></td><td><span style="color:#22c55e">Works</span></td><td>Documentation is stored in the container on the server</td></tr>
+<tr><td>Form screenshots</td><td><code>capture_form</code></td><td><span style="color:#22c55e">Works</span></td><td>Current form screenshot through EPF</td></tr>
+<tr><td>Query validation</td><td><code>validate_query</code></td><td><span style="color:#22c55e">Works</span></td><td>Static + server-side validation</td></tr>
+<tr><td>Anonymization</td><td><code>enable_anonymization</code>, <code>disable_anonymization</code></td><td><span style="color:#22c55e">Works</span></td><td>PII masking on the gateway side</td></tr>
+<tr><td>ITS search</td><td><code>its_search</code></td><td><span style="color:#22c55e">Works</span></td><td>1C:Naparnik API from the server container</td></tr>
+<tr><td>Management</td><td><code>connect_database</code>, <code>switch_database</code>, <code>list_databases</code>, etc.</td><td><span style="color:#22c55e">Works</span></td><td>Database management through the gateway</td></tr>
+<tr><td>BSL navigation</td><td><code>definition</code>, <code>symbol_explore</code>, <code>call_graph</code>, <code>hover</code>, etc.</td><td><span style="color:#eab308">Requires setup</span></td><td>BSL files must be exported to the server</td></tr>
+<tr><td>BSL export</td><td><code>export_bsl_sources</code></td><td><span style="color:#eab308">Requires setup</span></td><td>Needs export service or ibcmd on the server</td></tr>
 </table>
 
+<h3>MCPToolkit.epf behavior</h3>
+<p>When connecting, the data processor detects whether the gateway runs locally or remotely. If the gateway address differs from <code>localhost</code> or <code>127.0.0.1</code>, the data processor:</p>
+<ul>
+<li>Shows a warning in the event log: "Remote gateway, some features may be limited"</li>
+<li>The "Export BSL" button works only if the export service (<code>export-host-service.py</code>) is running on the server</li>
+<li>All other functions (connect, disconnect, command execution) work without limitations</li>
+</ul>
+<p>If the gateway is deployed on the same server where 1C runs, keep <code>http://localhost:8080</code> in the "Gateway address" field. In this case the data processor works in full mode.</p>
+
 <h3>Setting up BSL navigation on a remote server</h3>
-<p>BSL navigation (go-to-definition, symbol search, call graphs) only works when BSL files are present on the server. There are two ways to get them:</p>
-<p><b>Option 1. Export via EPF:</b></p>
+<p>BSL navigation (go-to-definition, symbol search, call graphs) only works when exported BSL files are present on the server. Without them, tools like <code>definition</code>, <code>symbol_explore</code>, <code>call_graph</code> will return empty results. There are two ways to get the BSL files:</p>
+
+<p><b>Option 1. Export via EPF (automatic):</b></p>
 <ol>
 <li>Start the export service on the server: <code>python3 tools/export-host-service.py --port 8082 --workspace /home/user/1c-projects</code></li>
-<li>Click "Export BSL" in the MCPToolkit.epf data processor.</li>
-<li>Wait for completion (3-5 minutes for large configurations).</li>
+<li>Make sure <code>.env</code> contains: <code>EXPORT_HOST_URL=http://localhost:8082</code></li>
+<li>Open MCPToolkit.epf in 1C, click "Export BSL"</li>
+<li>Wait for completion (3-5 minutes for ERP, 1-2 minutes for smaller configurations)</li>
 </ol>
+
 <p><b>Option 2. Manual export and copy:</b></p>
 <ol>
-<li>Export the configuration to XML/BSL on any machine with the 1C platform.</li>
-<li>Copy the BSL files to the server into the project directory (e.g. <code>/home/user/1c-projects/ERP_Test</code>).</li>
-<li>Ask the AI assistant to reindex: "Reindex BSL files".</li>
+<li>Export the configuration to XML on any machine with the 1C platform: <code>ibcmd /S server-erp/ERP_Test /DumpConfigToFiles /home/user/export</code></li>
+<li>Copy files to the server: <code>scp -r /home/user/export user@server-erp:/home/user/1c-projects/ERP_Test</code></li>
+<li>Ask the AI assistant to reindex: "Reindex BSL files"</li>
 </ol>
-<p>After this, BSL navigation will work fully.</p>
+<p>After export, the AI gets full navigation access: go-to-definition, call graphs, symbol search, error diagnostics, renaming.</p>
 
 <h3>Remote connection diagram</h3>
 <pre><code>Workstation                          1C Server (server-erp)
@@ -1482,7 +1526,7 @@ The AI will call the <code>connect_database</code> tool with the specified param
                                      | Information Database      |
                                      +---------------------------+</code></pre>
 
-<div class="warn"><p><b>Security:</b> Port 8080 opens access to all gateway tools, including code execution and DB queries. Restrict access by IP address using the firewall. Do not open the port to the internet without additional protection (VPN, SSH tunnel).</p></div>
+<div class="warn"><p><b>Security:</b> Port 8080 opens access to all gateway tools, including code execution and DB queries. Restrict access by IP address using the firewall. Do not open the port to the internet without additional protection (VPN, SSH tunnel). Example restriction: <code>sudo ufw allow from 192.168.1.0/24 to any port 8080</code></p></div>
 
 <!-- ================================================================== -->
 <h2 id="tools-en">6. MCP Tools (complete list)</h2>
