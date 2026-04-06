@@ -429,6 +429,11 @@ async def action_api(request: Request) -> JSONResponse:
             result["message"] = result.get("message", "") + "\nШлюз перезапускается..."
         return JSONResponse(result)
 
+    if path == "reindex-bsl":
+        from . import mcp_server as _ms
+        result = await _ms._reindex_bsl("")
+        return JSONResponse({"ok": True, "message": result})
+
     if path == "docker-info":
         return JSONResponse({"ok": True, "data": _get_docker_system_info()})
 

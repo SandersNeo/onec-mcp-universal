@@ -91,6 +91,7 @@ _T = {
         "save": "Сохранить",
         "diagnostics": "Диагностика",
         "fill_all_fields": "Заполните все поля",
+        "reindex_bsl": "Переиндексировать BSL",
     },
     "en": {
         "title": "onec-mcp-universal",
@@ -165,6 +166,7 @@ _T = {
         "save": "Save",
         "diagnostics": "Diagnostics",
         "fill_all_fields": "Fill all fields",
+        "reindex_bsl": "Reindex BSL",
     },
 }
 
@@ -269,6 +271,8 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 <span class="st">|</span>
 <button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/toggle-anon')">{{toggle_anon}}</button>
 <span class="st" style="display:flex;align-items:center;gap:4px"><span class="dot {{anon_dot}}"></span>{{anon_status}}</span>
+<span class="st">|</span>
+<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/reindex-bsl')">{{reindex_bsl}}</button>
 <span style="margin-left:auto"><button class="btn" style="font-size:.7rem" onclick="editEnv()">{{edit_config}}</button></span>
 </div>
 <div id="config-view">
