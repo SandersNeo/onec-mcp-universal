@@ -24,6 +24,7 @@
 - [Обновление](#обновление)
 - [Архитектура](#архитектура)
 - [Используемые проекты](#используемые-проекты)
+- [Скилы 1С для Claude Code](#скилы-1с-для-claude-code)
 - [Удаление](#удаление)
 - [Лицензия](#лицензия)
 
@@ -821,7 +822,7 @@ Claude Code / Cursor / Windsurf
 
 ## Скилы 1С для Claude Code
 
-В репозитории поставляются 67 скилов для работы с 1С через Claude Code. Скилы — это команды вида `/meta-compile`, `/epf-init`, `/form-compile`, которые Claude Code выполняет локально.
+В репозитории поставляются 72 скила для работы с 1С через Claude Code. Скилы — это команды вида `/meta-compile`, `/epf-init`, `/form-compile`, которые Claude Code выполняет локально.
 
 ### Установка скилов
 
@@ -854,6 +855,7 @@ powershell -ExecutionPolicy Bypass -File install-skills.ps1
 | Подсистемы | `subsystem-compile`, `subsystem-edit`, `subsystem-info`, `subsystem-validate` | Подсистемы |
 | Макеты (MXL) | `mxl-compile`, `mxl-decompile`, `mxl-info`, `mxl-validate` | Табличные документы |
 | Базы данных | `db-create`, `db-run`, `db-update`, `db-list`, `db-dump-cf`, `db-load-cf`, `db-dump-xml`, `db-load-xml`, `db-load-git` | Управление ИБ |
+| Стандарты кода | `standards-code`, `errors`, `query-writing`, `form-work`, `use-bsp` | Правила BSL, транзакции, запросы, формы, БСП |
 | Прочее | `help-add`, `interface-edit`, `interface-validate`, `img-grid` | Справка, интерфейс |
 
 ### Примеры использования скилов
