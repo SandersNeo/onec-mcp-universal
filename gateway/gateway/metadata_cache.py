@@ -17,11 +17,18 @@ DEFAULT_TTL = 600  # 10 minutes
 class MetadataCache:
     """Simple TTL cache for metadata tool responses."""
 
-    def __init__(self, ttl: int = DEFAULT_TTL) -> None:
-        self.ttl = ttl
-        self._store: dict[str, tuple[float, str]] = {}  # key → (expires_at, response_text)
+    def __init__(self) -> None:
+        self._store: dict[str, tuple[float, str]] = {}
         self._hits = 0
         self._misses = 0
+
+    @property
+    def ttl(self) -> int:
+        try:
+            from .config import settings
+            return settings.metadata_cache_ttl
+        except Exception:
+            return DEFAULT_TTL
 
     def _key(self, arguments: dict) -> str:
         """Deterministic cache key from tool arguments."""

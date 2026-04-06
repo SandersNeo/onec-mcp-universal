@@ -320,26 +320,39 @@ var msg=d.message||d.error||'OK';
 var h=location.hash||'';
 var delay=u.includes('disconnect')?1000:100;
 setTimeout(function(){location.href=location.pathname+'?lang={{lang}}&msg='+encodeURIComponent(msg)+h},delay);
-}).catch(e=>alert(e))}
+}).catch(e=>showToast(e))}
 // Show message from URL param after reload
 (function(){var p=new URLSearchParams(location.search);var m=p.get('msg');if(m){
-var d=document.createElement('div');d.style.cssText='position:fixed;top:12px;right:12px;background:#164e63;color:#22d3ee;padding:10px 16px;border-radius:6px;font-size:.85rem;z-index:999;max-width:400px';
+var d=document.createElement('div');d.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#164e63;color:#22d3ee;padding:14px 24px;border-radius:8px;font-size:.9rem;z-index:999;max-width:500px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.5)';
 d.textContent=m;document.body.appendChild(d);setTimeout(function(){d.remove()},4000);
 history.replaceState(null,'',location.pathname+'?lang='+p.get('lang')+(location.hash||''));
 }})();
+function showToast(msg){
+var d=document.createElement('div');
+d.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#164e63;color:#22d3ee;padding:14px 24px;border-radius:8px;font-size:.9rem;z-index:999;max-width:500px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.5)';
+d.textContent=msg;document.body.appendChild(d);setTimeout(function(){d.remove()},3000);
+}
 function connectDb(){
 var n=document.getElementById('db-name').value.trim();
 var c=document.getElementById('db-conn').value.trim();
 var p=document.getElementById('db-path').value.trim();
-if(!n||!c||!p){alert('{{fill_all_fields}}');return}
+if(!n||!c||!p){showToast('{{fill_all_fields}}');return}
 fetch('/api/action/connect-db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,connection:c,project_path:p})})
-.then(r=>r.json()).then(d=>{alert(d.message||d.error||JSON.stringify(d));if(d.ok)setTimeout(reload,300)}).catch(e=>alert(e))
+.then(r=>r.json()).then(d=>{showToast(d.message||d.error||'OK');if(d.ok)setTimeout(reload,1000)}).catch(e=>showToast(e))
 }
 function editDb(name,conn,path){
-var nc=prompt('{{add_db_conn}}:',conn);if(!nc)return;
-var np=prompt('{{add_db_path}}:',path);if(!np)return;
+var ov=document.createElement('div');
+ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center';
+ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:420px;max-width:90%"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:12px">'+name+'</h3><div style="margin-bottom:8px"><label style="color:#94a3b8;font-size:.75rem;display:block;margin-bottom:3px">{{add_db_conn}}</label><input id="ed-conn" value="'+conn+'" style="width:100%;padding:5px 8px;border-radius:4px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:.8rem"></div><div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.75rem;display:block;margin-bottom:3px">{{add_db_path}}</label><input id="ed-path" value="'+path+'" style="width:100%;padding:5px 8px;border-radius:4px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:.8rem"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 12px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.78rem">{{cancel}}</button><button onclick="saveEditDb(\''+name+'\')" style="padding:5px 12px;border-radius:5px;border:1px solid #0369a1;background:#0369a1;color:#fff;cursor:pointer;font-size:.78rem">{{save_config}}</button></div></div>';
+document.body.appendChild(ov);
+ov.addEventListener('click',function(e){if(e.target===ov)ov.remove()});
+}
+function saveEditDb(name){
+var nc=document.getElementById('ed-conn').value.trim();
+var np=document.getElementById('ed-path').value.trim();
+document.querySelector('div[style*="position:fixed"][style*="inset:0"]').remove();
 fetch('/api/action/edit-db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,connection:nc,project_path:np})})
-.then(r=>r.json()).then(d=>{alert(d.message||d.error);setTimeout(reload,300)}).catch(e=>alert(e))
+.then(r=>r.json()).then(d=>{showToast(d.message||d.error);setTimeout(reload,1000)}).catch(e=>showToast(e))
 }
 function editEnv(){
 fetch('/api/action/get-env',{method:'POST'}).then(r=>r.json()).then(d=>{
@@ -347,12 +360,12 @@ document.getElementById('env-editor').value=d.env||'';
 document.getElementById('config-view').style.display='none';
 document.getElementById('config-actions').style.display='none';
 document.getElementById('config-edit').style.display='block';
-}).catch(e=>alert(e))
+}).catch(e=>showToast(e))
 }
 function saveEnv(){
 var c=document.getElementById('env-editor').value;
 fetch('/api/action/save-env',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:c})})
-.then(r=>r.json()).then(d=>{alert(d.message||d.error);setTimeout(function(){location.href=location.pathname+'?lang={{lang}}#settings'},3000)}).catch(e=>alert(e))
+.then(r=>r.json()).then(d=>{showToast(d.message||d.error);setTimeout(function(){location.href=location.pathname+'?lang={{lang}}#settings'},3000)}).catch(e=>showToast(e))
 }
 function cancelEnv(){
 document.getElementById('config-view').style.display='block';
