@@ -407,9 +407,19 @@ async def action_api(request: Request) -> JSONResponse:
         db_name = request.query_params.get("name", "")
         if not db_name:
             return JSONResponse({"error": "name parameter required"}, status_code=400)
-        from . import mcp_server as _ms
-        result = await _ms._disconnect_database(db_name)
-        return JSONResponse({"ok": not result.startswith("ERROR"), "message": result})
+        # Remove from registry immediately (UI updates fast)
+        await _manager.remove_db_backends(db_name)
+        _registry.remove(db_name)
+        # Stop containers in background (slow Docker stop)
+        import threading
+        def _bg_stop():
+            try:
+                from .docker_manager import stop_db_containers
+                stop_db_containers(db_name)
+            except Exception:
+                pass
+        threading.Thread(target=_bg_stop, daemon=True).start()
+        return JSONResponse({"ok": True, "message": f"База '{db_name}' отключена."})
 
     if path == "get-env":
         return JSONResponse({"ok": True, "env": _read_env_file()})
