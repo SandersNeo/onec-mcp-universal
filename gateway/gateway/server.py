@@ -436,7 +436,7 @@ async def action_api(request: Request) -> JSONResponse:
         if result.get("ok"):
             # Auto-restart gateway container
             _restart_gateway()
-            result["message"] = result.get("message", "") + "\nШлюз перезапускается..."
+            result["message"] = "Настройки сохранены. Шлюз перезапускается..."
         return JSONResponse(result)
 
     if path == "reindex-bsl":
@@ -495,7 +495,7 @@ def _write_env_file(content: str) -> dict:
         try:
             with open(p, "w", encoding="utf-8") as f:
                 f.write(content)
-            return {"ok": True, "message": f"Saved to {p}. Restart gateway to apply: docker compose restart gateway"}
+            return {"ok": True, "message": "Настройки сохранены."}
         except (PermissionError, OSError):
             continue
     return {"ok": False, "error": "Cannot write .env inside container. Edit on host manually."}
