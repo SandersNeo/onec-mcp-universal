@@ -92,7 +92,7 @@ _T = {
         "diagnostics": "Диагностика",
         "fill_all_fields": "Заполните все поля",
         "reindex_bsl": "Переиндексировать BSL",
-        "h_params": "Параметры",
+        "h_params": "Настройки",
     },
     "en": {
         "title": "onec-mcp-universal",
@@ -168,7 +168,7 @@ _T = {
         "diagnostics": "Diagnostics",
         "fill_all_fields": "Fill all fields",
         "reindex_bsl": "Reindex BSL",
-        "h_params": "Parameters",
+        "h_params": "Settings",
     },
 }
 
@@ -399,7 +399,7 @@ def render_dashboard(
             epf = t["epf_ok"] if epf_connected else t["epf_wait"]
             conn = db.get("connection", "")
             default_icon = '<span class="dot ok" style="display:inline-block"></span>' if db.get("active") else ""
-            rows.append(f'<tr><td><b>{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td><span class="sr" style="margin:0;gap:5px"><span class="dot {epf_dot}"></span>{epf}</span></td><td style="text-align:center">{default_icon}</td></tr>')
+            rows.append(f'<tr><td><b>{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
         rows.append("</table>")
         databases_html = "\n".join(rows)
     else:
@@ -492,7 +492,7 @@ def render_dashboard(
                 f'<tr>'
                 f'<td><b>{db["name"]}</b></td>'
                 f'<td style="font-size:.75rem">{conn}</td>'
-                f'<td style="white-space:nowrap">{epf_st}</td>'
+                f'<td style="white-space:nowrap;text-align:center">{epf_st}</td>'
                 f'<td style="white-space:nowrap;text-align:center">{default_cell}</td>'
                 f'</tr>'
                 f'<tr><td colspan="4" style="padding:2px 6px">'
