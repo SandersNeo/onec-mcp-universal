@@ -13,23 +13,23 @@
 ## Содержание
 
 - [Возможности](#возможности)
+- [Архитектура](#архитектура)
 - [Требования](#требования)
 - [Установка на Linux](#установка-на-linux)
 - [Установка на Windows](#установка-на-windows)
 - [Подключение к AI-ассистенту](#подключение-к-ai-ассистенту)
 - [Подключение базы 1С](#подключение-базы-1с)
-- [Удалённое подключение](#удалённое-подключение)
-- [Примеры команд AI](#примеры-команд-ai)
-- [Настройка 1С:Напарник](#настройка-1снапарник-поиск-по-итс)
-- [Web UI дашборд](#web-ui-дашборд)
 - [Обработка MCPToolkit.epf](#обработка-mcptoolkitepf)
 - [Работа с несколькими базами](#работа-с-несколькими-базами)
+- [Удалённое подключение](#удалённое-подключение)
+- [Примеры команд AI](#примеры-команд-ai)
+- [Web UI дашборд](#web-ui-дашборд)
+- [Настройка 1С:Напарник](#настройка-1снапарник-поиск-по-итс)
 - [Опциональные модули](#опциональные-модули)
+- [Скилы 1С для Claude Code](#скилы-1с-для-claude-code)
 - [Диагностика](#диагностика)
 - [Обновление](#обновление)
-- [Архитектура](#архитектура)
 - [Используемые проекты](#используемые-проекты)
-- [Скилы 1С для Claude Code](#скилы-1с-для-claude-code)
 - [Удаление](#удаление)
 - [Лицензия](#лицензия)
 
@@ -70,6 +70,56 @@
 - **72 скила для Claude Code** -- создание объектов, форм, обработок, отчётов, расширений
 - **Stateful MCP-сессии** -- idle timeout 8 часов
 - **68 unit-тестов**, CI/CD через GitHub Actions
+
+---
+
+## Архитектура
+
+```
+Claude Code / Cursor / Windsurf
+       | HTTP :8080/mcp (Streamable HTTP)
+       | (Mcp-Session-Id -> per-session routing)
+       v
++----------------------------------------------+
+|  onec-mcp-gw  (Python, host network)         |
+|                                              |
+|  Статические бэкенды:                        |
+|  +- onec-toolkit      :6003  (HTTP)          |
+|  +- platform-context  :8081  (SSE)           |
+|                                              |
+|  Динамические бэкенды (per-DB):              |
+|  +- onec-toolkit-{db} :6100+ (HTTP)          |
+|  +- mcp-lsp-{db}      (stdio)                |
+|                                              |
+|  Модули шлюза:                               |
+|  +- anonymizer      -- маскировка ПД         |
+|  +- metadata_cache  -- кеш метаданных        |
+|  +- profiler        -- замер запросов        |
+|  +- bsl_search      -- индекс BSL            |
+|  +- naparnik_client -- API 1С:Напарника      |
+|  +- web_ui          -- /dashboard            |
+|                                              |
+|  Per-session routing (idle 8h)               |
+|  /data/db_state.json <- persistence          |
++----------------------------------------------+
+       ^           ^                ^
+       |           |                |
+  MCPToolkit.epf   |     https://code.1c.ai
+  (клиент 1С)      |     (1С:Напарник API)
+                   |
+           /dashboard
+           (Web UI)
+```
+
+**Per-session routing:** каждый AI-клиент получает уникальный `Mcp-Session-Id`. Шлюз маршрутизирует запросы к активной базе данных этой сессии. Разные сеансы Claude Code и Cursor могут одновременно работать с разными базами. Idle timeout сессий -- 8 часов.
+
+| Контейнер | Образ | Роль |
+|---|---|---|
+| `onec-mcp-gw` | Собирается локально | MCP-шлюз, маршрутизация, per-session routing |
+| `onec-mcp-toolkit` | [roctup/1c-mcp-toolkit-proxy](https://github.com/ROCTUP/1c-mcp-toolkit) | Статический бэкенд данных |
+| `onec-mcp-platform` | [ghcr.io/alkoleft/mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) | Документация платформы |
+| `onec-toolkit-{db}` | roctup/1c-mcp-toolkit-proxy | Динамический бэкенд данных (per-DB) |
+| `mcp-lsp-{db}` | mcp-lsp-bridge-bsl | BSL Language Server (per-DB) |
 
 ---
 
@@ -317,6 +367,56 @@ http://localhost:8080/mcp
 ```
 Покажи статус индексации BSL
 ```
+
+---
+
+## Обработка MCPToolkit.epf
+
+Внешняя обработка `1c/MCPToolkit.epf` -- основной способ подключения базы 1С к шлюзу. Обработка открывается в клиенте 1С:Предприятие и предоставляет три кнопки:
+
+| Кнопка | Действие |
+|---|---|
+| **Подключиться** | Регистрирует текущую базу в шлюзе. Создаёт Docker-контейнеры `onec-toolkit-{db}` и `mcp-lsp-{db}`. Имя базы и сервер определяются автоматически |
+| **Отключиться** | Останавливает контейнеры базы и удаляет регистрацию из шлюза |
+| **Выгрузить BSL** | Запускает выгрузку исходников конфигурации в BSL-файлы для навигации по коду. На крупных конфигурациях (ERP, ЗУП) занимает 3-5 минут |
+
+**Автоподключение:** при нажатии "Подключиться" обработка отправляет HTTP-запрос на шлюз с параметрами базы. Шлюз автоматически создаёт контейнеры и регистрирует базу -- никакой ручной настройки не требуется.
+
+**Автономный режим:** если шлюз недоступен (контейнеры остановлены, сеть не работает), обработка переключается на прямое подключение к toolkit-бэкенду. В этом режиме недоступны BSL-навигация, документация платформы и анонимизация.
+
+**Безопасность:** два чекбокса управляют автоматическим подтверждением операций записи и привилегированного режима. На production-базах рекомендуется оставить оба выключенными.
+
+**Статус подключения** отображается на дашборде (`http://localhost:8080/dashboard`) -- вкладка "Информация", раздел "Подключённые базы". Зелёный индикатор EPF означает, что обработка активна.
+
+Исходный код обработки: [`1c/MCPToolkit.epf`](1c/MCPToolkit.epf).
+
+![MCPToolkit.epf](docs/epf-form.png)
+
+---
+
+## Работа с несколькими базами
+
+Каждый сеанс AI-ассистента (Claude Code, Cursor) работает со своей активной базой данных. Все базы остаются подключёнными одновременно.
+
+```
+Подключи базу ZUP, строка подключения Srvr=server-erp;Ref=ZUP;, папка /home/user/projects/ZUP
+```
+
+```
+Переключись на базу ZUP
+```
+
+```
+Покажи список подключённых баз
+```
+
+```
+Отключи базу ZUP
+```
+
+Per-session routing: если один сеанс Claude Code работает с ERP, а другой -- с ZUP, они не пересекаются. Idle timeout сессий -- 8 часов.
+
+При перезапуске шлюза все ранее подключённые базы восстанавливаются автоматически.
 
 ---
 
@@ -769,25 +869,6 @@ python3 tools/export-host-service.py --port 8082 --workspace /home/user/1c-proje
 
 ---
 
-## Настройка 1С:Напарник (поиск по ИТС)
-
-1. Получить API-ключ на https://code.1c.ai (Профиль -> API-токен). Требуется подписка ИТС.
-2. Добавить в `.env`:
-
-```env
-NAPARNIK_API_KEY=ваш-ключ-api
-```
-
-3. Перезапустить шлюз:
-
-```bash
-docker compose restart gateway
-```
-
-После этого инструмент `its_search` станет доступен в AI-ассистенте.
-
----
-
 ## Web UI дашборд
 
 Визуальная панель мониторинга и управления доступна по адресу:
@@ -828,53 +909,22 @@ http://localhost:8080/dashboard/docs
 
 ---
 
-## Обработка MCPToolkit.epf
+## Настройка 1С:Напарник (поиск по ИТС)
 
-Внешняя обработка `1c/MCPToolkit.epf` -- основной способ подключения базы 1С к шлюзу. Обработка открывается в клиенте 1С:Предприятие и предоставляет три кнопки:
+1. Получить API-ключ на https://code.1c.ai (Профиль -> API-токен). Требуется подписка ИТС.
+2. Добавить в `.env`:
 
-| Кнопка | Действие |
-|---|---|
-| **Подключиться** | Регистрирует текущую базу в шлюзе. Создаёт Docker-контейнеры `onec-toolkit-{db}` и `mcp-lsp-{db}`. Имя базы и сервер определяются автоматически |
-| **Отключиться** | Останавливает контейнеры базы и удаляет регистрацию из шлюза |
-| **Выгрузить BSL** | Запускает выгрузку исходников конфигурации в BSL-файлы для навигации по коду. На крупных конфигурациях (ERP, ЗУП) занимает 3-5 минут |
-
-**Автоподключение:** при нажатии "Подключиться" обработка отправляет HTTP-запрос на шлюз с параметрами базы. Шлюз автоматически создаёт контейнеры и регистрирует базу -- никакой ручной настройки не требуется.
-
-**Автономный режим:** если шлюз недоступен (контейнеры остановлены, сеть не работает), обработка переключается на прямое подключение к toolkit-бэкенду. В этом режиме недоступны BSL-навигация, документация платформы и анонимизация.
-
-**Безопасность:** два чекбокса управляют автоматическим подтверждением операций записи и привилегированного режима. На production-базах рекомендуется оставить оба выключенными.
-
-**Статус подключения** отображается на дашборде (`http://localhost:8080/dashboard`) -- вкладка "Информация", раздел "Подключённые базы". Зелёный индикатор EPF означает, что обработка активна.
-
-Исходный код обработки: [`1c/MCPToolkit.epf`](1c/MCPToolkit.epf).
-
-![MCPToolkit.epf](docs/epf-form.png)
-
----
-
-## Работа с несколькими базами
-
-Каждый сеанс AI-ассистента (Claude Code, Cursor) работает со своей активной базой данных. Все базы остаются подключёнными одновременно.
-
-```
-Подключи базу ZUP, строка подключения Srvr=server-erp;Ref=ZUP;, папка /home/user/projects/ZUP
+```env
+NAPARNIK_API_KEY=ваш-ключ-api
 ```
 
-```
-Переключись на базу ZUP
+3. Перезапустить шлюз:
+
+```bash
+docker compose restart gateway
 ```
 
-```
-Покажи список подключённых баз
-```
-
-```
-Отключи базу ZUP
-```
-
-Per-session routing: если один сеанс Claude Code работает с ERP, а другой -- с ZUP, они не пересекаются. Idle timeout сессий -- 8 часов.
-
-При перезапуске шлюза все ранее подключённые базы восстанавливаются автоматически.
+После этого инструмент `its_search` станет доступен в AI-ассистенте.
 
 ---
 
@@ -927,138 +977,6 @@ docker compose --profile bsl-graph up -d
 ```
 Найди все объекты, связанные с документом ПоступлениеТоваровУслуг
 ```
-
----
-
-## Диагностика
-
-**Страница диагностики:**
-
-```
-http://localhost:8080/dashboard
-```
-
-Ссылка "Диагностика" внизу дашборда -- полный JSON-отчёт: версия шлюза, активные сессии, бэкенды, базы, профилирование, кеш, Docker, логи контейнеров, переменные окружения.
-
-**Статус бэкендов:**
-
-```bash
-curl http://localhost:8080/health
-```
-
-Или через AI: `Покажи статус MCP-сервера`
-
-**Логи шлюза:**
-
-```bash
-docker logs onec-mcp-gw -f
-```
-
-**Логи toolkit конкретной базы:**
-
-```bash
-docker logs onec-toolkit-ERP_Test -f
-```
-
-**Перезапуск шлюза:**
-
-```bash
-docker compose restart gateway
-```
-
-**Типичные проблемы:**
-
-| Проблема | Решение |
-|---|---|
-| Бэкенд показывает красный статус | `docker logs onec-mcp-gw -f`, проверить `docker compose ps` |
-| EPF не подключается | Проверить `curl http://localhost:8080/health`, кнопка "Подключиться" |
-| BSL-навигация не работает | Нажать "Выгрузить BSL" в обработке, дождаться 3-5 мин |
-| Ошибка .env в дашборде | `cp .env.example .env`, файл монтируется `./.env:/data/.env:rw` |
-| Контейнеры не создаются | `docker system df`, очистить: `docker system prune` |
-| Таймаут от шлюза | Нажать "Отключиться" и "Подключиться" повторно |
-| AI получает устаревшие метаданные | Сбросить кеш: "Очистить кеш" в дашборде или `invalidate_metadata_cache` |
-
----
-
-## Обновление
-
-```bash
-git pull
-docker compose build --no-cache gateway
-docker compose up -d
-```
-
----
-
-## Архитектура
-
-```
-Claude Code / Cursor / Windsurf
-       | HTTP :8080/mcp (Streamable HTTP)
-       | (Mcp-Session-Id -> per-session routing)
-       v
-+----------------------------------------------+
-|  onec-mcp-gw  (Python, host network)         |
-|                                              |
-|  Статические бэкенды:                        |
-|  +- onec-toolkit      :6003  (HTTP)          |
-|  +- platform-context  :8081  (SSE)           |
-|                                              |
-|  Динамические бэкенды (per-DB):              |
-|  +- onec-toolkit-{db} :6100+ (HTTP)          |
-|  +- mcp-lsp-{db}      (stdio)                |
-|                                              |
-|  Модули шлюза:                               |
-|  +- anonymizer      -- маскировка ПД         |
-|  +- metadata_cache  -- кеш метаданных        |
-|  +- profiler        -- замер запросов        |
-|  +- bsl_search      -- индекс BSL            |
-|  +- naparnik_client -- API 1С:Напарника      |
-|  +- web_ui          -- /dashboard            |
-|                                              |
-|  Per-session routing (idle 8h)               |
-|  /data/db_state.json <- persistence          |
-+----------------------------------------------+
-       ^           ^                ^
-       |           |                |
-  MCPToolkit.epf   |     https://code.1c.ai
-  (клиент 1С)      |     (1С:Напарник API)
-                   |
-           /dashboard
-           (Web UI)
-```
-
-**Per-session routing:** каждый AI-клиент получает уникальный `Mcp-Session-Id`. Шлюз маршрутизирует запросы к активной базе данных этой сессии. Разные сеансы Claude Code и Cursor могут одновременно работать с разными базами. Idle timeout сессий -- 8 часов.
-
-| Контейнер | Образ | Роль |
-|---|---|---|
-| `onec-mcp-gw` | Собирается локально | MCP-шлюз, маршрутизация, per-session routing |
-| `onec-mcp-toolkit` | [roctup/1c-mcp-toolkit-proxy](https://github.com/ROCTUP/1c-mcp-toolkit) | Статический бэкенд данных |
-| `onec-mcp-platform` | [ghcr.io/alkoleft/mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) | Документация платформы |
-| `onec-toolkit-{db}` | roctup/1c-mcp-toolkit-proxy | Динамический бэкенд данных (per-DB) |
-| `mcp-lsp-{db}` | mcp-lsp-bridge-bsl | BSL Language Server (per-DB) |
-
----
-
-## Используемые проекты
-
-### Основные
-
-| Проект | Автор | Назначение |
-|---|---|---|
-| [1c-mcp-toolkit](https://github.com/ROCTUP/1c-mcp-toolkit) | ROCTUP | Запросы к БД, выполнение кода, метаданные, журнал регистрации, права |
-| [mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) | alkoleft | Документация API платформы 1С |
-| [mcp-bsl-lsp-bridge](https://github.com/alkoleft/mcp-bsl-lsp-bridge) | alkoleft | MCP-мост к BSL Language Server |
-| [lsp-session-manager](https://github.com/alkoleft/lsp-session-manager) | alkoleft | Мультиплексор сессий BSL Language Server |
-| [bsl-language-server](https://github.com/1c-syntax/bsl-language-server) | 1c-syntax | Language Server для BSL |
-| [1c_mcp](https://github.com/vladimir-kharin/1c_mcp) | vladimir-kharin | Справочник синтаксиса BSL |
-
-### Опциональные
-
-| Проект | Автор | Профиль | Назначение |
-|---|---|---|---|
-| [mcp-onec-test-runner](https://github.com/alkoleft/mcp-onec-test-runner) | alkoleft | `test-runner` | Запуск тестов YaXUnit, сборка, проверка синтаксиса |
-| [bsl-graph](https://github.com/alkoleft/bsl-graph) | alkoleft | `bsl-graph` | Граф зависимостей объектов конфигурации |
 
 ---
 
@@ -1207,6 +1125,88 @@ powershell -ExecutionPolicy Bypass -File install-skills.ps1
 ```
 /cf-info -- покажи состав конфигурации
 ```
+
+---
+
+## Диагностика
+
+**Страница диагностики:**
+
+```
+http://localhost:8080/dashboard
+```
+
+Ссылка "Диагностика" внизу дашборда -- полный JSON-отчёт: версия шлюза, активные сессии, бэкенды, базы, профилирование, кеш, Docker, логи контейнеров, переменные окружения.
+
+**Статус бэкендов:**
+
+```bash
+curl http://localhost:8080/health
+```
+
+Или через AI: `Покажи статус MCP-сервера`
+
+**Логи шлюза:**
+
+```bash
+docker logs onec-mcp-gw -f
+```
+
+**Логи toolkit конкретной базы:**
+
+```bash
+docker logs onec-toolkit-ERP_Test -f
+```
+
+**Перезапуск шлюза:**
+
+```bash
+docker compose restart gateway
+```
+
+**Типичные проблемы:**
+
+| Проблема | Решение |
+|---|---|
+| Бэкенд показывает красный статус | `docker logs onec-mcp-gw -f`, проверить `docker compose ps` |
+| EPF не подключается | Проверить `curl http://localhost:8080/health`, кнопка "Подключиться" |
+| BSL-навигация не работает | Нажать "Выгрузить BSL" в обработке, дождаться 3-5 мин |
+| Ошибка .env в дашборде | `cp .env.example .env`, файл монтируется `./.env:/data/.env:rw` |
+| Контейнеры не создаются | `docker system df`, очистить: `docker system prune` |
+| Таймаут от шлюза | Нажать "Отключиться" и "Подключиться" повторно |
+| AI получает устаревшие метаданные | Сбросить кеш: "Очистить кеш" в дашборде или `invalidate_metadata_cache` |
+
+---
+
+## Обновление
+
+```bash
+git pull
+docker compose build --no-cache gateway
+docker compose up -d
+```
+
+---
+
+## Используемые проекты
+
+### Основные
+
+| Проект | Автор | Назначение |
+|---|---|---|
+| [1c-mcp-toolkit](https://github.com/ROCTUP/1c-mcp-toolkit) | ROCTUP | Запросы к БД, выполнение кода, метаданные, журнал регистрации, права |
+| [mcp-bsl-platform-context](https://github.com/alkoleft/mcp-bsl-platform-context) | alkoleft | Документация API платформы 1С |
+| [mcp-bsl-lsp-bridge](https://github.com/alkoleft/mcp-bsl-lsp-bridge) | alkoleft | MCP-мост к BSL Language Server |
+| [lsp-session-manager](https://github.com/alkoleft/lsp-session-manager) | alkoleft | Мультиплексор сессий BSL Language Server |
+| [bsl-language-server](https://github.com/1c-syntax/bsl-language-server) | 1c-syntax | Language Server для BSL |
+| [1c_mcp](https://github.com/vladimir-kharin/1c_mcp) | vladimir-kharin | Справочник синтаксиса BSL |
+
+### Опциональные
+
+| Проект | Автор | Профиль | Назначение |
+|---|---|---|---|
+| [mcp-onec-test-runner](https://github.com/alkoleft/mcp-onec-test-runner) | alkoleft | `test-runner` | Запуск тестов YaXUnit, сборка, проверка синтаксиса |
+| [bsl-graph](https://github.com/alkoleft/bsl-graph) | alkoleft | `bsl-graph` | Граф зависимостей объектов конфигурации |
 
 ---
 
