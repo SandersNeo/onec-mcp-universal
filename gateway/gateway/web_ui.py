@@ -267,6 +267,7 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 </div>
 <div class="card">
 <h2>{{h_config}}</h2>
+<hr style="border:none;border-top:1px solid #334155;margin:8px 0">
 <h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">{{h_actions}}</h3>
 <div id="config-actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid #334155">
 <button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/clear-cache')">{{clear_cache}}</button>
@@ -460,7 +461,7 @@ def render_dashboard(
             is_default = db.get("active", False)
             epf_connected = db.get("epf_connected", False)
             epf_dot = "ok" if epf_connected else "warn"
-            epf_st = f'<span class="dot {epf_dot}"></span> {t["epf_ok"] if epf_connected else t["epf_wait"]}'
+            epf_st = f'<span class="dot {epf_dot}" style="display:inline-block"></span>'
             conn = db.get("connection", "")
             proj = db.get("project_path", "")
             sep = '<tr><td colspan="4" style="padding:0"><hr style="border:none;border-top:1px solid #334155;margin:4px 0"></td></tr>' if i > 0 else ""
