@@ -92,6 +92,7 @@ _T = {
         "diagnostics": "Диагностика",
         "fill_all_fields": "Заполните все поля",
         "reindex_bsl": "Переиндексировать BSL",
+        "h_params": "Параметры",
     },
     "en": {
         "title": "onec-mcp-universal",
@@ -167,6 +168,7 @@ _T = {
         "diagnostics": "Diagnostics",
         "fill_all_fields": "Fill all fields",
         "reindex_bsl": "Reindex BSL",
+        "h_params": "Parameters",
     },
 }
 
@@ -265,16 +267,7 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 </div>
 <div class="card">
 <h2>{{h_config}}</h2>
-<div id="config-actions" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #334155;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/clear-cache')">{{clear_cache}}</button>
-<span class="st">{{cache_status}}</span>
-<span class="st">|</span>
-<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/toggle-anon')">{{toggle_anon}}</button>
-<span class="st" style="display:flex;align-items:center;gap:4px"><span class="dot {{anon_dot}}"></span>{{anon_status}}</span>
-<span class="st">|</span>
-<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/reindex-bsl')">{{reindex_bsl}}</button>
-<span style="margin-left:auto"><button class="btn" style="font-size:.7rem" onclick="editEnv()">{{edit_config}}</button></span>
-</div>
+<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px">{{h_params}} <button class="btn" style="font-size:.65rem;padding:2px 6px;float:right" onclick="editEnv()">{{edit_config}}</button></h3>
 <div id="config-view">
 <table><tr><th style="width:40%">{{setting}}</th><th>{{value}}</th></tr>{{config_html}}</table>
 </div>
@@ -285,6 +278,16 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 <button class="btn" onclick="cancelEnv()">{{cancel}}</button>
 </div>
 <p class="hint">{{config_edit_hint}}</p>
+</div>
+<div id="config-actions" style="margin-top:10px;padding-top:10px;border-top:1px solid #334155">
+<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">{{h_actions}}</h3>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/clear-cache')">{{clear_cache}}</button>
+<span class="st">{{cache_status}}</span>
+<span class="st">|</span>
+<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/toggle-anon')">{{toggle_anon}}</button>
+<span class="st" style="display:flex;align-items:center;gap:4px"><span class="dot {{anon_dot}}"></span>{{anon_status}}</span>
+</div>
 </div>
 </div>
 </div>
@@ -387,17 +390,17 @@ def render_dashboard(
         )
     backends_html = "\n".join(b_lines) or f'<span class="st">{t["no_backends"]}</span>'
 
-    # Databases — fixed table layout
+    # Databases — with default column
     if databases:
         rows = [f'<table style="table-layout:auto">'
-                f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th><th>{t["status"]}</th></tr>']
+                f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th><th>{t["status"]}</th><th>{t["default_badge"]}</th></tr>']
         for db in databases:
-            badge = f'<br><span class="badge">{t["default_badge"]}</span>' if db.get("active") else ""
             epf_connected = db.get("epf_connected", False)
             epf_dot = "ok" if epf_connected else "warn"
             epf = t["epf_ok"] if epf_connected else t["epf_wait"]
             conn = db.get("connection", "")
-            rows.append(f'<tr><td><b>{db["name"]}</b>{badge}</td><td style="font-size:.78rem">{conn}</td><td><span class="sr" style="margin:0;gap:5px"><span class="dot {epf_dot}"></span>{epf}</span></td></tr>')
+            default_icon = '<span class="dot ok"></span>' if db.get("active") else ""
+            rows.append(f'<tr><td><b>{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td><span class="sr" style="margin:0;gap:5px"><span class="dot {epf_dot}"></span>{epf}</span></td><td style="text-align:center">{default_icon}</td></tr>')
         rows.append("</table>")
         databases_html = "\n".join(rows)
     else:
@@ -452,47 +455,53 @@ def render_dashboard(
     # Config
     config_html = "\n".join(f"<tr><td>{k}</td><td><code>{v}</code></td></tr>" for k, v in config_items)
 
-    # DB management — with Configure + Disconnect buttons
+    # DB management — buttons under each DB, separated by lines
     if databases:
-        db_lines = []
-        for db in databases:
+        db_blocks = []
+        for i, db in enumerate(databases):
             is_default = db.get("active", False)
-            badge = f'<br><span class="badge">{t["default_badge"]}</span>' if is_default else ""
             epf_connected = db.get("epf_connected", False)
             epf_dot = "ok" if epf_connected else "warn"
-            epf_st = f'<span class="sr" style="margin:0;gap:5px"><span class="dot {epf_dot}"></span>{t["epf_ok"] if epf_connected else t["epf_wait"]}</span>'
+            epf_st = f'<span class="dot {epf_dot}"></span> {t["epf_ok"] if epf_connected else t["epf_wait"]}'
+            default_icon = '<span class="dot ok"></span>' if is_default else ""
             conn = db.get("connection", "")
             proj = db.get("project_path", "")
-            conn_short = conn[:40]
-            # Buttons
-            default_btn = ""
-            if not is_default:
-                default_btn = (
-                    f'<button class="btn" style="font-size:.68rem;padding:2px 8px" '
-                    f'onclick="act(\'/api/action/switch?name={db["name"]}\')">{t["configure"]}</button>'
-                )
+            sep = '<tr><td colspan="4" style="padding:0"><hr style="border:none;border-top:1px solid #334155;margin:4px 0"></td></tr>' if i > 0 else ""
+            # Buttons row
+            default_btn = (
+                f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
+                f'onclick="act(\'/api/action/switch?name={db["name"]}\')">{t["configure"]}</button> '
+            ) if not is_default else ""
             edit_btn = (
-                f'<button class="btn" style="font-size:.68rem;padding:2px 8px" '
-                f'onclick="editDb(\'{db["name"]}\',\'{conn}\',\'{proj}\')">{t["edit_db"]}</button>'
+                f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
+                f'onclick="editDb(\'{db["name"]}\',\'{conn}\',\'{proj}\')">{t["edit_db"]}</button> '
+            )
+            reindex_btn = (
+                f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
+                f'onclick="act(\'/api/action/reindex-bsl\')">{t["reindex_bsl"]}</button> '
             )
             disc_btn = (
-                f'<button class="btn-d" '
+                f'<button class="btn-d" style="font-size:.65rem" '
                 f'onclick="if(confirm(\'{t["confirm_disconnect"]} {db["name"]}?\'))act(\'/api/action/disconnect?name={db["name"]}\')">'
                 f'{t["disconnect_db"]}</button>'
             )
-            db_lines.append(
+            db_blocks.append(
+                f'{sep}'
                 f'<tr>'
-                f'<td><b>{db["name"]}</b>{badge}</td>'
-                f'<td style="font-size:.75rem;word-break:break-all">{conn}</td>'
+                f'<td><b>{db["name"]}</b></td>'
+                f'<td style="font-size:.75rem">{conn}</td>'
                 f'<td style="white-space:nowrap">{epf_st}</td>'
-                f'<td style="white-space:nowrap;text-align:right">{default_btn}{edit_btn} {disc_btn}</td>'
+                f'<td style="white-space:nowrap;text-align:center">{default_icon}</td>'
                 f'</tr>'
+                f'<tr><td colspan="4" style="padding:2px 6px">'
+                f'{default_btn}{edit_btn}{reindex_btn}{disc_btn}'
+                f'</td></tr>'
             )
         db_mgmt_html = (
             f'<table style="table-layout:auto;font-size:.82rem">'
             f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th>'
-            f'<th>{t["status"]}</th><th></th></tr>'
-            + "\n".join(db_lines) + '</table>'
+            f'<th>{t["status"]}</th><th>{t["default_badge"]}</th></tr>'
+            + "\n".join(db_blocks) + '</table>'
         )
     else:
         db_mgmt_html = f'<span class="st">{t["no_databases"]}</span>'
