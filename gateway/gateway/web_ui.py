@@ -262,7 +262,7 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 <div class="form-row"><label>{{add_db_name}}</label><input id="db-name" placeholder="ERP_DEMO"></div>
 <div class="form-row"><label>{{add_db_conn}}</label><input id="db-conn" placeholder="Srvr=localhost;Ref=ERP;"></div>
 <div class="form-row"><label>{{add_db_path}}</label><input id="db-path" placeholder="/home/user/projects"></div>
-<div class="ag"><button class="btn btn-p" onclick="connectDb()">{{add_db_btn}}</button></div>
+<div class="ag"><button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="connectDb()">{{add_db_btn}}</button></div>
 </div>
 </div>
 <div class="card">
