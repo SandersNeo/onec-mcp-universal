@@ -427,24 +427,24 @@ python3 tools/export-host-service.py --port 8082 --workspace /home/user/1c-proje
 
 ```
 Рабочая станция                     Сервер 1С (server-erp)
-+-----------------+                  +---------------------------+
-| Claude Code     |   HTTP :8080     | Docker                    |
-| или Cursor      | ---------------> | onec-mcp-gw (шлюз)       |
-|                 |   /mcp           | onec-toolkit (бэкенд)     |
-+-----------------+                  | platform-context          |
-                                     | mcp-lsp (навигация BSL)   |
-                                     +---------------------------+
-                                            ^
-                                            | localhost
-                                     +---------------------------+
-                                     | Тонкий клиент 1С          |
-                                     | MCPToolkit.epf             |
-                                     +---------------------------+
-                                            |
-                                     +---------------------------+
-                                     | Сервер 1С:Предприятие     |
-                                     | Информационная база       |
-                                     +---------------------------+
++-----------------+                  +-----------------------------+
+| Claude Code     |   HTTP :8080     | Docker                      |
+| или Cursor      | ---------------> | onec-mcp-gw (шлюз)          |
+|                 |   /mcp           | onec-toolkit (бэкенд)       |
++-----------------+                  | platform-context            |
+                                     | mcp-lsp (навигация BSL)     |
+                                     +-----------------------------+
+                                              ^
+                                              | localhost
+                                     +-----------------------------+
+                                     | Тонкий клиент 1С            |
+                                     | MCPToolkit.epf              |
+                                     +-----------------------------+
+                                              |
+                                     +-----------------------------+
+                                     | Сервер 1С:Предприятие       |
+                                     | Информационная база         |
+                                     +-----------------------------+
 ```
 
 > **Безопасность.** Порт 8080 открывает доступ ко всем инструментам шлюза. Ограничьте доступ по IP через файрвол: `sudo ufw allow from 192.168.1.0/24 to any port 8080`. Не открывайте порт в интернет без VPN или SSH-туннеля.
@@ -993,28 +993,28 @@ Claude Code / Cursor / Windsurf
        | HTTP :8080/mcp (Streamable HTTP)
        | (Mcp-Session-Id -> per-session routing)
        v
-+------------------------------------------+
-|  onec-mcp-gw  (Python, host network)     |
-|                                          |
-|  Статические бэкенды:                    |
-|  +- onec-toolkit      :6003  (HTTP)     |
-|  +- platform-context  :8081  (SSE)      |
-|                                          |
-|  Динамические бэкенды (per-DB):          |
-|  +- onec-toolkit-{db} :6100+ (HTTP)     |
-|  +- mcp-lsp-{db}      (stdio)          |
-|                                          |
-|  Модули шлюза:                           |
-|  +- anonymizer      -- маскировка ПД    |
-|  +- metadata_cache  -- кеш метаданных   |
-|  +- profiler        -- замер запросов   |
-|  +- bsl_search      -- индекс BSL       |
-|  +- naparnik_client -- API 1С:Напарника |
-|  +- web_ui          -- /dashboard       |
-|                                          |
-|  Per-session routing (idle 8h)           |
-|  /data/db_state.json <- persistence      |
-+------------------------------------------+
++----------------------------------------------+
+|  onec-mcp-gw  (Python, host network)         |
+|                                              |
+|  Статические бэкенды:                        |
+|  +- onec-toolkit      :6003  (HTTP)          |
+|  +- platform-context  :8081  (SSE)           |
+|                                              |
+|  Динамические бэкенды (per-DB):              |
+|  +- onec-toolkit-{db} :6100+ (HTTP)          |
+|  +- mcp-lsp-{db}      (stdio)               |
+|                                              |
+|  Модули шлюза:                               |
+|  +- anonymizer      -- маскировка ПД         |
+|  +- metadata_cache  -- кеш метаданных        |
+|  +- profiler        -- замер запросов        |
+|  +- bsl_search      -- индекс BSL            |
+|  +- naparnik_client -- API 1С:Напарника      |
+|  +- web_ui          -- /dashboard            |
+|                                              |
+|  Per-session routing (idle 8h)               |
+|  /data/db_state.json <- persistence          |
++----------------------------------------------+
        ^           ^                ^
        |           |                |
   MCPToolkit.epf   |     https://code.1c.ai

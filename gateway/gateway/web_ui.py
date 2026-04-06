@@ -936,24 +936,24 @@ claude mcp add onec --transport http http://server-erp:8080/mcp
 
 <h3>Схема удалённого подключения</h3>
 <pre><code>Рабочая станция                     Сервер 1С (server-erp)
-+-----------------+                  +---------------------------+
-| Claude Code     |   HTTP :8080     | Docker                    |
-| или Cursor      | ---------------> | onec-mcp-gw (шлюз)       |
-|                 |   /mcp           | onec-toolkit (бэкенд)     |
-+-----------------+                  | platform-context          |
-                                     | mcp-lsp (навигация BSL)   |
-                                     +---------------------------+
-                                            ^
-                                            | localhost
-                                     +---------------------------+
-                                     | Тонкий клиент 1С          |
-                                     | MCPToolkit.epf             |
-                                     +---------------------------+
-                                            |
-                                     +---------------------------+
-                                     | Сервер 1С:Предприятие     |
-                                     | Информационная база       |
-                                     +---------------------------+</code></pre>
++-----------------+                  +-----------------------------+
+| Claude Code     |   HTTP :8080     | Docker                      |
+| или Cursor      | ---------------> | onec-mcp-gw (шлюз)          |
+|                 |   /mcp           | onec-toolkit (бэкенд)       |
++-----------------+                  | platform-context            |
+                                     | mcp-lsp (навигация BSL)     |
+                                     +-----------------------------+
+                                              ^
+                                              | localhost
+                                     +-----------------------------+
+                                     | Тонкий клиент 1С            |
+                                     | MCPToolkit.epf              |
+                                     +-----------------------------+
+                                              |
+                                     +-----------------------------+
+                                     | Сервер 1С:Предприятие       |
+                                     | Информационная база         |
+                                     +-----------------------------+</code></pre>
 
 <div class="warn"><p><b>Безопасность:</b> Порт 8080 открывает доступ ко всем инструментам шлюза, включая выполнение кода и запросы к БД. Ограничьте доступ по IP-адресам через файрвол. Не открывайте порт в интернет без дополнительной защиты (VPN, SSH-туннель). Пример ограничения: <code>sudo ufw allow from 192.168.1.0/24 to any port 8080</code></p></div>
 
@@ -1562,24 +1562,24 @@ For full functionality: docker compose on the 1C server.</code></pre>
 
 <h3>Remote connection diagram</h3>
 <pre><code>Workstation                          1C Server (server-erp)
-+-----------------+                  +---------------------------+
-| Claude Code     |   HTTP :8080     | Docker                    |
-| or Cursor       | ---------------> | onec-mcp-gw (gateway)     |
-|                 |   /mcp           | onec-toolkit (backend)    |
-+-----------------+                  | platform-context          |
-                                     | mcp-lsp (BSL navigation)  |
-                                     +---------------------------+
-                                            ^
-                                            | localhost
-                                     +---------------------------+
-                                     | 1C Thin Client            |
-                                     | MCPToolkit.epf             |
-                                     +---------------------------+
-                                            |
-                                     +---------------------------+
-                                     | 1C:Enterprise Server      |
-                                     | Information Database      |
-                                     +---------------------------+</code></pre>
++-----------------+                  +-----------------------------+
+| Claude Code     |   HTTP :8080     | Docker                      |
+| or Cursor       | ---------------> | onec-mcp-gw (gateway)       |
+|                 |   /mcp           | onec-toolkit (backend)      |
++-----------------+                  | platform-context            |
+                                     | mcp-lsp (BSL navigation)    |
+                                     +-----------------------------+
+                                              ^
+                                              | localhost
+                                     +-----------------------------+
+                                     | 1C Thin Client              |
+                                     | MCPToolkit.epf              |
+                                     +-----------------------------+
+                                              |
+                                     +-----------------------------+
+                                     | 1C:Enterprise Server        |
+                                     | Information Database        |
+                                     +-----------------------------+</code></pre>
 
 <div class="warn"><p><b>Security:</b> Port 8080 opens access to all gateway tools, including code execution and DB queries. Restrict access by IP address using the firewall. Do not open the port to the internet without additional protection (VPN, SSH tunnel). Example restriction: <code>sudo ufw allow from 192.168.1.0/24 to any port 8080</code></p></div>
 
