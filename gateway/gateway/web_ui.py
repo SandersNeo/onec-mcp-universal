@@ -393,7 +393,7 @@ def render_dashboard(
     if databases:
         rows = [f'<table style="table-layout:auto">'
                 f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th><th style="text-align:center">{t["status"]}</th><th style="text-align:center">{t["default_badge"]}</th></tr>']
-        for db in databases:
+        for db in sorted(databases, key=lambda d: d.get('name', '')):
             epf_connected = db.get("epf_connected", False)
             epf_dot = "ok" if epf_connected else "warn"
             epf = t["epf_ok"] if epf_connected else t["epf_wait"]
@@ -457,7 +457,7 @@ def render_dashboard(
     # DB management — buttons under each DB, separated by lines
     if databases:
         db_blocks = []
-        for i, db in enumerate(databases):
+        for i, db in enumerate(sorted(databases, key=lambda d: d.get('name', ''))):
             is_default = db.get("active", False)
             epf_connected = db.get("epf_connected", False)
             epf_dot = "ok" if epf_connected else "warn"
