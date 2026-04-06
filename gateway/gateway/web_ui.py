@@ -267,7 +267,18 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 </div>
 <div class="card">
 <h2>{{h_config}}</h2>
-<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px">{{h_params}} <button class="btn" style="font-size:.65rem;padding:2px 6px;float:right" onclick="editEnv()">{{edit_config}}</button></h3>
+<div id="config-actions">
+<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">{{h_actions}}</h3>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/clear-cache')">{{clear_cache}}</button>
+<span class="st">{{cache_status}}</span>
+<span class="st">|</span>
+<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/toggle-anon')">{{toggle_anon}}</button>
+<span class="st" style="display:flex;align-items:center;gap:4px"><span class="dot {{anon_dot}}"></span>{{anon_status}}</span>
+</div>
+</div>
+<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155">
+<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">{{h_params}} <button class="btn" style="font-size:.65rem;padding:2px 6px;float:right" onclick="editEnv()">{{edit_config}}</button></h3>
 <div id="config-view">
 <table><tr><th style="width:40%">{{setting}}</th><th>{{value}}</th></tr>{{config_html}}</table>
 </div>
@@ -278,15 +289,6 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 <button class="btn" onclick="cancelEnv()">{{cancel}}</button>
 </div>
 <p class="hint">{{config_edit_hint}}</p>
-</div>
-<div id="config-actions" style="margin-top:10px;padding-top:10px;border-top:1px solid #334155">
-<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">{{h_actions}}</h3>
-<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/clear-cache')">{{clear_cache}}</button>
-<span class="st">{{cache_status}}</span>
-<span class="st">|</span>
-<button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/toggle-anon')">{{toggle_anon}}</button>
-<span class="st" style="display:flex;align-items:center;gap:4px"><span class="dot {{anon_dot}}"></span>{{anon_status}}</span>
 </div>
 </div>
 </div>
@@ -481,7 +483,7 @@ def render_dashboard(
             )
             reindex_btn = (
                 f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
-                f'onclick="act(\'/api/action/reindex-bsl\')">{t["reindex_bsl"]}</button> '
+                f'onclick="act(\'/api/action/reindex-bsl?name={db["name"]}\')">{t["reindex_bsl"]}</button> '
             )
             disc_btn = (
                 f'<button class="btn-d" style="font-size:.65rem" '

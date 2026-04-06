@@ -430,6 +430,20 @@ async def action_api(request: Request) -> JSONResponse:
         return JSONResponse(result)
 
     if path == "reindex-bsl":
+        db_name = request.query_params.get("name", "")
+        if db_name:
+            db = _registry.get(db_name)
+            if db and db.lsp_container:
+                try:
+                    from .backends.manager import BackendManager
+                    lsp = _manager._db_backends.get(db_name, {}).get("lsp")
+                    if lsp:
+                        result = await lsp.call_tool("did_change_watched_files", {"path": "/projects"})
+                        resp = result.content[0].text if result.content else ""
+                        return JSONResponse({"ok": True, "message": f"Переиндексация BSL для '{db_name}' запущена.\n{resp}"})
+                except Exception as exc:
+                    return JSONResponse({"ok": False, "error": str(exc)})
+            return JSONResponse({"ok": False, "error": f"LSP для '{db_name}' не найден."})
         from . import mcp_server as _ms
         result = await _ms._reindex_bsl("")
         return JSONResponse({"ok": True, "message": result})
