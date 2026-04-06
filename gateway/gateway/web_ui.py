@@ -489,11 +489,11 @@ def render_dashboard(
             )
             db_blocks.append(
                 f'{sep}'
-                f'<tr>'
+                f'<tr style="vertical-align:middle">'
                 f'<td><b>{db["name"]}</b></td>'
                 f'<td style="font-size:.75rem">{conn}</td>'
-                f'<td style="text-align:center;vertical-align:middle">{epf_st}</td>'
-                f'<td style="text-align:center;vertical-align:middle">{default_cell}</td>'
+                f'<td style="text-align:center">{epf_st}</td>'
+                f'<td style="text-align:center">{default_cell}</td>'
                 f'</tr>'
                 f'<tr><td colspan="4" style="padding:2px 6px">'
                 f'{edit_btn}{reindex_btn}{disc_btn}'
