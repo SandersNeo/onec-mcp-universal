@@ -1,7 +1,7 @@
 """
 Web UI dashboard for onec-mcp-universal gateway.
 Served at GET /dashboard. Supports Russian (default) and English.
-Two tabs: Info + Parameters. Documentation opens in /dashboard/docs.
+Two tabs: Status + Settings. Documentation opens in /dashboard/docs.
 """
 from __future__ import annotations
 
@@ -98,7 +98,7 @@ _T = {
         "title": "onec-mcp-universal",
         "subtitle": "MCP Gateway for 1C:Enterprise",
         "tab_info": "Status",
-        "tab_settings": "Parameters",
+        "tab_settings": "Settings",
         "btn_docs": "Docs",
         "btn_refresh": "Refresh",
         "h_backends": "Backends",
