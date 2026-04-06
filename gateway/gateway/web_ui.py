@@ -48,11 +48,11 @@ _T = {
         "no_backends": "Нет бэкендов",
         "no_databases": "Нет подключённых баз",
         "no_queries": "Нет запросов",
-        "epf_ok": "Подкл.",
-        "epf_wait": "Не подкл.",
+        "epf_ok": "",
+        "epf_wait": "",
         "name": "Имя",
         "connection": "Подключение",
-        "status": "Обработка",
+        "status": "Обработка подключена",
         "setting": "Параметр",
         "value": "Значение",
         "license": "Лицензия",
@@ -82,11 +82,11 @@ _T = {
         "docker_vols_size": "Размер томов",
         "running": "запущен",
         "stopped": "остановлен",
-        "configure": "По умолч.",
+        "configure": "По умолчанию",
         "add_db": "Добавить базу",
         "edit_db": "Изменить",
         "confirm_disconnect": "Отключить базу",
-        "default_badge": "По умолч.",
+        "default_badge": "По умолчанию",
         "edit_db_title": "Редактирование базы",
         "save": "Сохранить",
         "diagnostics": "Диагностика",
@@ -124,11 +124,11 @@ _T = {
         "no_backends": "No backends",
         "no_databases": "No databases",
         "no_queries": "No queries yet",
-        "epf_ok": "Conn.",
-        "epf_wait": "Disconn.",
+        "epf_ok": "",
+        "epf_wait": "",
         "name": "Name",
         "connection": "Connection",
-        "status": "EPF",
+        "status": "EPF connected",
         "setting": "Setting",
         "value": "Value",
         "license": "License",
@@ -266,10 +266,8 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 </div>
 </div>
 <div class="card">
-<h2>{{h_config}}</h2>
-<div id="config-actions">
-<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">{{h_actions}}</h3>
-<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<h2>{{h_actions}}</h2>
+<div id="config-actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
 <button class="btn" style="font-size:.7rem;padding:3px 8px" onclick="act('/api/action/clear-cache')">{{clear_cache}}</button>
 <span class="st">{{cache_status}}</span>
 <span class="st">|</span>
@@ -277,8 +275,8 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 <span class="st" style="display:flex;align-items:center;gap:4px"><span class="dot {{anon_dot}}"></span>{{anon_status}}</span>
 </div>
 </div>
-<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155">
-<h3 style="font-size:.65rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">{{h_params}} <button class="btn" style="font-size:.65rem;padding:2px 6px;float:right" onclick="editEnv()">{{edit_config}}</button></h3>
+<div class="card">
+<h2>{{h_config}} <button class="btn" style="font-size:.65rem;padding:2px 6px;float:right" onclick="editEnv()">{{edit_config}}</button></h2>
 <div id="config-view">
 <table><tr><th style="width:40%">{{setting}}</th><th>{{value}}</th></tr>{{config_html}}</table>
 </div>
@@ -289,7 +287,6 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 <button class="btn" onclick="cancelEnv()">{{cancel}}</button>
 </div>
 <p class="hint">{{config_edit_hint}}</p>
-</div>
 </div>
 </div>
 </div>
