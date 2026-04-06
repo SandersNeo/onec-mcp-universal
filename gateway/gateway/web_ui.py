@@ -392,14 +392,14 @@ def render_dashboard(
     # Databases — with default column
     if databases:
         rows = [f'<table style="table-layout:auto">'
-                f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th><th>{t["status"]}</th><th>{t["default_badge"]}</th></tr>']
+                f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th><th style="text-align:center">{t["status"]}</th><th style="text-align:center">{t["default_badge"]}</th></tr>']
         for db in databases:
             epf_connected = db.get("epf_connected", False)
             epf_dot = "ok" if epf_connected else "warn"
             epf = t["epf_ok"] if epf_connected else t["epf_wait"]
             conn = db.get("connection", "")
             default_icon = '<span class="dot ok" style="display:inline-block"></span>' if db.get("active") else ""
-            rows.append(f'<tr><td><b>{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
+            rows.append(f'<tr><td><b>{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td style="text-align:center"><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
         rows.append("</table>")
         databases_html = "\n".join(rows)
     else:
@@ -502,7 +502,7 @@ def render_dashboard(
         db_mgmt_html = (
             f'<table style="table-layout:auto;font-size:.82rem">'
             f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th>'
-            f'<th>{t["status"]}</th><th>{t["default_badge"]}</th></tr>'
+            f'<th style="text-align:center">{t["status"]}</th><th style="text-align:center">{t["default_badge"]}</th></tr>'
             + "\n".join(db_blocks) + '</table>'
         )
     else:
