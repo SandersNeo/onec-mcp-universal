@@ -846,7 +846,9 @@ http://localhost:8080/dashboard/docs
 
 **Статус подключения** отображается на дашборде (`http://localhost:8080/dashboard`) -- вкладка "Информация", раздел "Подключённые базы". Зелёный индикатор EPF означает, что обработка активна.
 
-Исходный код обработки: [`1c/MCPToolkit.epf`](1c/MCPToolkit.epf). Репозиторий: [GitHub](https://github.com/AlekseiSeleznev/onec-mcp-universal).
+Исходный код обработки: [`1c/MCPToolkit.epf`](1c/MCPToolkit.epf).
+
+![MCPToolkit.epf](docs/epf-form.png)
 
 ---
 
