@@ -193,7 +193,6 @@ a{color:#38bdf8;text-decoration:none}a:hover{text-decoration:underline}
 .btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:5px;font-size:.78rem;cursor:pointer;border:1px solid #475569;background:#1e293b;color:#94a3b8;text-decoration:none}
 .btn:hover{background:#334155;color:#f8fafc;text-decoration:none}
 .btn-p{background:#0369a1;border-color:#0369a1;color:#fff}.btn-p:hover{background:#0284c7}
-.btn-d{background:#991b1b;border-color:#991b1b;color:#fff;font-size:.7rem;padding:3px 8px}.btn-d:hover{background:#b91c1c}
 .tabs{display:flex;background:#1e293b;border-bottom:1px solid #334155;padding:0 20px;flex-shrink:0}
 .tab{padding:8px 16px;font-size:.78rem;color:#64748b;cursor:pointer;border-bottom:2px solid transparent}
 .tab:hover{color:#94a3b8}.tab.on{color:#38bdf8;border-bottom-color:#38bdf8}
@@ -217,7 +216,7 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 .footer a{color:#64748b}.footer a:hover{color:#94a3b8}
 .ag{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .hint{color:#64748b;font-size:.72rem;margin-top:10px;font-style:italic}
-@media(max-width:900px){.grid{grid-template-columns:1fr!important}.card{font-size:.8rem}table{font-size:.75rem}.btn,.btn-d{font-size:.7rem;padding:3px 6px}}
+@media(max-width:900px){.grid{grid-template-columns:1fr!important}.card{font-size:.8rem}table{font-size:.75rem}.btn{font-size:.7rem;padding:3px 6px}}
 .form-row{display:grid;grid-template-columns:140px 1fr;gap:8px;margin-bottom:8px;align-items:center}
 .form-row label{font-size:.78rem;color:#94a3b8;text-align:right}
 .form-row input{padding:5px 8px;border-radius:4px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:.8rem;width:100%}
@@ -372,6 +371,13 @@ document.getElementById('config-view').style.display='block';
 document.getElementById('config-actions').style.display='flex';
 document.getElementById('config-edit').style.display='none';
 }
+function confirmDisconnect(name){
+var ov=document.createElement('div');
+ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center';
+ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:16px">{{confirm_disconnect}} '+name+'?</h3><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/disconnect?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #991b1b;background:#991b1b;color:#fff;cursor:pointer;font-size:.8rem">{{disconnect_db}}</button></div></div>';
+document.body.appendChild(ov);
+ov.addEventListener('click',function(e){if(e.target===ov)ov.remove()});
+}
 </script>
 </body></html>"""
 
@@ -497,8 +503,8 @@ def render_dashboard(
                 f'onclick="act(\'/api/action/reindex-bsl?name={db["name"]}\')">{t["reindex_bsl"]}</button> '
             )
             disc_btn = (
-                f'<button class="btn-d" style="font-size:.65rem" '
-                f'onclick="if(confirm(\'{t["confirm_disconnect"]} {db["name"]}?\'))act(\'/api/action/disconnect?name={db["name"]}\')">'
+                f'<button class="btn" style="font-size:.65rem;padding:2px 6px;background:#991b1b;border-color:#991b1b;color:#fff" '
+                f'onclick="confirmDisconnect(\'{db["name"]}\')">'
                 f'{t["disconnect_db"]}</button>'
             )
             db_blocks.append(
@@ -876,7 +882,6 @@ claude mcp add onec --transport http http://server-erp:8080/mcp
 <tr><td>Журнал регистрации</td><td><code>get_event_log</code></td><td><span style="color:#22c55e">Работает</span></td><td>Чтение и фильтрация журнала через EPF</td></tr>
 <tr><td>Ссылки и поиск</td><td><code>get_object_by_link</code>, <code>get_link_of_object</code>, <code>find_references_to_object</code></td><td><span style="color:#22c55e">Работает</span></td><td>Навигационные ссылки и поиск использований</td></tr>
 <tr><td>Документация</td><td><code>search</code>, <code>info</code>, <code>getMembers</code>, <code>getMember</code>, <code>getConstructors</code></td><td><span style="color:#22c55e">Работает</span></td><td>Документация хранится в контейнере на сервере</td></tr>
-<tr><td>Снимки форм</td><td><code>capture_form</code></td><td><span style="color:#22c55e">Работает</span></td><td>Скриншот текущей формы через EPF</td></tr>
 <tr><td>Валидация запросов</td><td><code>validate_query</code></td><td><span style="color:#22c55e">Работает</span></td><td>Статическая + серверная проверка</td></tr>
 <tr><td>Анонимизация</td><td><code>enable_anonymization</code>, <code>disable_anonymization</code></td><td><span style="color:#22c55e">Работает</span></td><td>Маскировка ПД на стороне шлюза</td></tr>
 <tr><td>Поиск по ИТС</td><td><code>its_search</code></td><td><span style="color:#22c55e">Работает</span></td><td>API 1С:Напарника из контейнера на сервере</td></tr>
@@ -1022,7 +1027,6 @@ claude mcp add onec --transport http http://server-erp:8080/mcp
 <tr><td><code>its_search</code></td><td>Поиск по документации ИТС (1С:Информационно-технологическое сопровождение) через API 1С:Напарника. Требует настройки <code>NAPARNIK_API_KEY</code>.</td></tr>
 <tr><td><code>invalidate_metadata_cache</code></td><td>Очистка кеша метаданных. Аналог кнопки «Очистить кеш» в дашборде.</td></tr>
 <tr><td><code>query_stats</code></td><td>Статистика производительности запросов: количество, среднее/максимальное время, процент ошибок.</td></tr>
-<tr><td><code>capture_form</code></td><td>Снимок экрана (скриншот) текущей открытой формы в клиенте 1С. Возвращает изображение в формате base64.</td></tr>
 <tr><td><code>graph_stats</code></td><td>Статистика графа зависимостей BSL: количество узлов, рёбер, распределение по типам объектов. Требует bsl-graph.</td></tr>
 <tr><td><code>graph_search</code></td><td>Поиск объектов конфигурации в графе зависимостей. Требует bsl-graph.</td></tr>
 <tr><td><code>graph_related</code></td><td>Поиск связанных объектов в графе зависимостей: что использует объект и что его использует (impact analysis). Требует bsl-graph.</td></tr>
@@ -1502,7 +1506,6 @@ claude mcp add onec --transport http http://server-erp:8080/mcp
 <tr><td>Event log</td><td><code>get_event_log</code></td><td><span style="color:#22c55e">Works</span></td><td>Reading and filtering event log through EPF</td></tr>
 <tr><td>Links and search</td><td><code>get_object_by_link</code>, <code>get_link_of_object</code>, <code>find_references_to_object</code></td><td><span style="color:#22c55e">Works</span></td><td>Navigation links and reference search</td></tr>
 <tr><td>Documentation</td><td><code>search</code>, <code>info</code>, <code>getMembers</code>, <code>getMember</code>, <code>getConstructors</code></td><td><span style="color:#22c55e">Works</span></td><td>Documentation is stored in the container on the server</td></tr>
-<tr><td>Form screenshots</td><td><code>capture_form</code></td><td><span style="color:#22c55e">Works</span></td><td>Current form screenshot through EPF</td></tr>
 <tr><td>Query validation</td><td><code>validate_query</code></td><td><span style="color:#22c55e">Works</span></td><td>Static + server-side validation</td></tr>
 <tr><td>Anonymization</td><td><code>enable_anonymization</code>, <code>disable_anonymization</code></td><td><span style="color:#22c55e">Works</span></td><td>PII masking on the gateway side</td></tr>
 <tr><td>ITS search</td><td><code>its_search</code></td><td><span style="color:#22c55e">Works</span></td><td>1C:Naparnik API from the server container</td></tr>
@@ -1648,7 +1651,6 @@ For full functionality: docker compose on the 1C server.</code></pre>
 <tr><td><code>its_search</code></td><td>Search ITS documentation (1C Information and Technology Support) via the 1C:Naparnik API. Requires <code>NAPARNIK_API_KEY</code> configuration.</td></tr>
 <tr><td><code>invalidate_metadata_cache</code></td><td>Clear the metadata cache. Equivalent to the "Clear Cache" button in the dashboard.</td></tr>
 <tr><td><code>query_stats</code></td><td>Query performance statistics: count, avg/max time, error rate.</td></tr>
-<tr><td><code>capture_form</code></td><td>Screenshot of the currently open form in the 1C client. Returns the image in base64 format.</td></tr>
 <tr><td><code>graph_stats</code></td><td>BSL dependency graph statistics: node count, edge count, distribution by object types. Requires bsl-graph.</td></tr>
 <tr><td><code>graph_search</code></td><td>Search for configuration objects in the dependency graph. Requires bsl-graph.</td></tr>
 <tr><td><code>graph_related</code></td><td>Find related objects in the dependency graph: what the object uses and what uses it (impact analysis). Requires bsl-graph.</td></tr>

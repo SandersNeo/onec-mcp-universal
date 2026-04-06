@@ -356,24 +356,6 @@ GW_TOOLS = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
-    # --- Form screenshot ---
-    Tool(
-        name="capture_form",
-        description=(
-            "Request a screenshot of the currently open form in the 1C client. "
-            "The EPF must be running and connected. Returns the screenshot as a base64 image."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "format": {
-                    "type": "string",
-                    "description": "Image format: png or jpg (default: png)",
-                    "default": "png",
-                },
-            },
-        },
-    ),
 ]
 
 _SYNTAX_RESOURCE_PATH = Path(__file__).parent.parent / "resources" / "syntax_1c.txt"
@@ -627,10 +609,6 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     # --- Query profiling ---
     if name == "query_stats":
         return [TextContent(type="text", text=json.dumps(profiler.get_stats(), ensure_ascii=False, indent=2))]
-
-    # --- Form screenshot ---
-    if name == "capture_form":
-        return [TextContent(type="text", text=await _capture_form(arguments.get("format", "png")))]
 
     # --- Metadata cache check ---
     if name == "get_metadata" and settings.metadata_cache_ttl > 0:
@@ -897,38 +875,6 @@ async def _its_search(query: str) -> str:
         )
     client = NaparnikClient(settings.naparnik_api_key)
     return await client.search(query)
-
-
-# ---------------------------------------------------------------------------
-# Form screenshot
-# ---------------------------------------------------------------------------
-
-async def _capture_form(fmt: str) -> str:
-    active = _get_session_active()
-    if not active:
-        return "ERROR: No active database. Connect a database first."
-    if not active.toolkit_url:
-        return "ERROR: No toolkit URL for active database."
-
-    # Request screenshot from toolkit via its REST API
-    base_url = active.toolkit_url.replace("/mcp", "")
-    url = f"{base_url}/1c/screenshot"
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(url, json={"format": fmt})
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("ok"):
-                    return json.dumps(data, ensure_ascii=False)
-                return f"ERROR: {data.get('error', 'Unknown error')}"
-            if resp.status_code == 404:
-                return (
-                    "ERROR: Screenshot endpoint not available. "
-                    "Update MCPToolkit.epf to the latest version."
-                )
-            return f"ERROR: Screenshot request failed: {resp.status_code}"
-    except Exception as exc:
-        return f"ERROR: {exc}"
 
 
 # ---------------------------------------------------------------------------
