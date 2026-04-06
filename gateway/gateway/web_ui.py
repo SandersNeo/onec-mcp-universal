@@ -86,7 +86,7 @@ _T = {
         "add_db": "Добавить базу",
         "edit_db": "Изменить",
         "confirm_disconnect": "Отключить базу",
-        "default_badge": "по умолч.",
+        "default_badge": "По умолч.",
         "edit_db_title": "Редактирование базы",
         "save": "Сохранить",
         "diagnostics": "Диагностика",
@@ -162,7 +162,7 @@ _T = {
         "add_db": "Add Database",
         "edit_db": "Edit",
         "confirm_disconnect": "Disconnect database",
-        "default_badge": "default",
+        "default_badge": "Default",
         "edit_db_title": "Edit Database",
         "save": "Save",
         "diagnostics": "Diagnostics",
@@ -399,7 +399,7 @@ def render_dashboard(
             epf_dot = "ok" if epf_connected else "warn"
             epf = t["epf_ok"] if epf_connected else t["epf_wait"]
             conn = db.get("connection", "")
-            default_icon = '<span class="dot ok"></span>' if db.get("active") else ""
+            default_icon = '<span class="dot ok" style="display:inline-block"></span>' if db.get("active") else ""
             rows.append(f'<tr><td><b>{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td><span class="sr" style="margin:0;gap:5px"><span class="dot {epf_dot}"></span>{epf}</span></td><td style="text-align:center">{default_icon}</td></tr>')
         rows.append("</table>")
         databases_html = "\n".join(rows)
@@ -463,15 +463,18 @@ def render_dashboard(
             epf_connected = db.get("epf_connected", False)
             epf_dot = "ok" if epf_connected else "warn"
             epf_st = f'<span class="dot {epf_dot}"></span> {t["epf_ok"] if epf_connected else t["epf_wait"]}'
-            default_icon = '<span class="dot ok"></span>' if is_default else ""
             conn = db.get("connection", "")
             proj = db.get("project_path", "")
             sep = '<tr><td colspan="4" style="padding:0"><hr style="border:none;border-top:1px solid #334155;margin:4px 0"></td></tr>' if i > 0 else ""
-            # Buttons row
-            default_btn = (
-                f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
-                f'onclick="act(\'/api/action/switch?name={db["name"]}\')">{t["configure"]}</button> '
-            ) if not is_default else ""
+            # Default column: green dot or button
+            if is_default:
+                default_cell = '<span class="dot ok" style="display:inline-block"></span>'
+            else:
+                default_cell = (
+                    f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
+                    f'onclick="act(\'/api/action/switch?name={db["name"]}\')">{t["configure"]}</button>'
+                )
+            # Action buttons under DB
             edit_btn = (
                 f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
                 f'onclick="editDb(\'{db["name"]}\',\'{conn}\',\'{proj}\')">{t["edit_db"]}</button> '
@@ -491,10 +494,10 @@ def render_dashboard(
                 f'<td><b>{db["name"]}</b></td>'
                 f'<td style="font-size:.75rem">{conn}</td>'
                 f'<td style="white-space:nowrap">{epf_st}</td>'
-                f'<td style="white-space:nowrap;text-align:center">{default_icon}</td>'
+                f'<td style="white-space:nowrap;text-align:center">{default_cell}</td>'
                 f'</tr>'
                 f'<tr><td colspan="4" style="padding:2px 6px">'
-                f'{default_btn}{edit_btn}{reindex_btn}{disc_btn}'
+                f'{edit_btn}{reindex_btn}{disc_btn}'
                 f'</td></tr>'
             )
         db_mgmt_html = (
