@@ -611,11 +611,11 @@ MCPToolkit.epf (обработка внутри клиента 1С)
 <tr><th>Столбец</th><th>Описание</th></tr>
 <tr><td><b>Имя</b></td><td>Уникальный идентификатор базы (латинские буквы, цифры, дефис, подчёркивание). Используется в именах Docker-контейнеров: <code>onec-toolkit-{имя}</code> и <code>mcp-lsp-{имя}</code>. Примеры: <code>ERP</code>, <code>ZUP_TEST</code>, <code>buh-main</code>.</td></tr>
 <tr><td><b>Подключение</b></td><td>Строка подключения 1С в стандартном формате платформы. Для серверной базы: <code>Srvr=имя_сервера;Ref=имя_базы;</code>. Для файловой: <code>File=/путь/к/базе</code>.</td></tr>
-<tr><td><b>Обработка</b></td><td>Статус подключения обработки MCPToolkit.epf. Отображается как цветной индикатор с текстом:<br>
-<span style="color:#22c55e">Подкл.</span> (зелёный) - обработка запущена в клиенте 1С, long-polling соединение активно, AI может выполнять запросы к этой базе.<br>
-<span style="color:#eab308">Не подкл.</span> (жёлтый) - Docker-контейнеры для базы запущены, но обработка ещё не подключена. Необходимо открыть MCPToolkit.epf в клиенте 1С и нажать «Подключиться».</td></tr>
+<tr><td><b>Обработка подключена</b></td><td>Статус подключения обработки MCPToolkit.epf. Отображается как цветной кружок без текста:<br>
+<span style="color:#22c55e">&#9679;</span> зеленый - обработка запущена в клиенте 1С, long-polling активно, AI может выполнять запросы.<br>
+<span style="color:#eab308">&#9679;</span> желтый - контейнеры запущены, но обработка не подключена. Откройте MCPToolkit.epf и нажмите "Подключиться".</td></tr>
 </table>
-<p>У базы, выбранной по умолчанию, рядом с именем отображается бирка <span style="background:#164e63;color:#22d3ee;padding:1px 6px;border-radius:3px;font-size:.75rem">по умолч.</span>. Эта база используется для новых сеансов AI, если сеанс не переключился на другую базу через <code>switch_database</code>.</p>
+<p>В отдельной колонке "По умолчанию" отображается зеленый кружок <span style="color:#22c55e">&#9679;</span> у базы, выбранной по умолчанию. Эта база используется для новых сеансов AI, если сеанс не переключился на другую через <code>switch_database</code>. Для остальных баз в этой колонке показана кнопка "По умолчанию", которая позволяет сделать базу активной.</p>
 <div class="note"><p><b>Автоподключение:</b> Если пользователь нажимает «Подключиться» в обработке MCPToolkit.epf, а база ещё не зарегистрирована в шлюзе, она автоматически подключается - создаются Docker-контейнеры, база появляется в этой таблице.</p></div>
 
 <h3>Карточка «Профилирование»</h3>
@@ -880,6 +880,27 @@ claude mcp add onec --transport http http://server-erp:8080/mcp
 <li>Все остальные функции (подключение, отключение, выполнение команд) работают без ограничений</li>
 </ul>
 <p>Если шлюз развёрнут на том же сервере, где работает 1С, в поле "Адрес шлюза" оставьте <code>http://localhost:8080</code>. В этом случае обработка работает в полном режиме.</p>
+<p>При работе через веб-клиент или удаленный тонкий клиент обработка автоматически определяет удаленное подключение и выводит в журнал:</p>
+<pre><code>Удаленное подключение (веб/тонкий клиент).
+Доступно: запросы, код, метаданные, журнал, права.
+Недоступно: BSL навигация, выгрузка BSL.
+Для полной работы: docker compose на сервере 1С.</code></pre>
+
+<h3>Порты для удаленного доступа</h3>
+<p>Минимальный набор портов, которые нужно открыть на сервере 1С:</p>
+<table>
+<tr><th>Порт</th><th>Сервис</th><th>Назначение</th></tr>
+<tr><td><code>8080</code></td><td>MCP-шлюз</td><td>AI-ассистент подключается к <code>/mcp</code>, дашборд на <code>/dashboard</code></td></tr>
+<tr><td><code>443</code> или <code>80</code></td><td>Веб-публикация 1С</td><td>Тонкий клиент в браузере (обычно уже открыт)</td></tr>
+<tr><td><code>3389</code></td><td>RDP (опционально)</td><td>Удаленный рабочий стол для доступа к Конфигуратору</td></tr>
+</table>
+<p>Если нужен прямой доступ к Конфигуратору без RDP:</p>
+<table>
+<tr><th>Порт</th><th>Назначение</th></tr>
+<tr><td><code>1540-1541</code></td><td>Агент и менеджер кластера 1С</td></tr>
+<tr><td><code>1560-1591</code></td><td>Рабочие процессы кластера 1С</td></tr>
+</table>
+<p>Все остальные порты (6003, 6100+, 8081) работают внутри сервера через localhost и не требуют открытия наружу.</p>
 
 <h3>Настройка навигации по BSL на удалённом сервере</h3>
 <p>Навигация по BSL (переход к определению, поиск символов, граф вызовов) работает только при наличии выгруженных BSL-файлов на сервере. Без них инструменты <code>definition</code>, <code>symbol_explore</code>, <code>call_graph</code> вернут пустые результаты. Есть два способа получить BSL-файлы:</p>
@@ -1485,6 +1506,27 @@ claude mcp add onec --transport http http://server-erp:8080/mcp
 <li>All other functions (connect, disconnect, command execution) work without limitations</li>
 </ul>
 <p>If the gateway is deployed on the same server where 1C runs, keep <code>http://localhost:8080</code> in the "Gateway address" field. In this case the data processor works in full mode.</p>
+<p>When running via web client or remote thin client, the EPF automatically detects the remote connection and shows in the event log:</p>
+<pre><code>Remote connection (web/thin client).
+Available: queries, code, metadata, event log, access rights.
+Unavailable: BSL navigation, BSL export.
+For full functionality: docker compose on the 1C server.</code></pre>
+
+<h3>Ports for remote access</h3>
+<p>Minimum set of ports to open on the 1C server:</p>
+<table>
+<tr><th>Port</th><th>Service</th><th>Purpose</th></tr>
+<tr><td><code>8080</code></td><td>MCP gateway</td><td>AI assistant connects to <code>/mcp</code>, dashboard at <code>/dashboard</code></td></tr>
+<tr><td><code>443</code> or <code>80</code></td><td>1C web publication</td><td>Thin client in browser (usually already open)</td></tr>
+<tr><td><code>3389</code></td><td>RDP (optional)</td><td>Remote desktop for Designer access</td></tr>
+</table>
+<p>For direct Designer access without RDP:</p>
+<table>
+<tr><th>Port</th><th>Purpose</th></tr>
+<tr><td><code>1540-1541</code></td><td>1C cluster agent and manager</td></tr>
+<tr><td><code>1560-1591</code></td><td>1C cluster worker processes</td></tr>
+</table>
+<p>All other ports (6003, 6100+, 8081) work inside the server via localhost and do not need to be opened externally.</p>
 
 <h3>Setting up BSL navigation on a remote server</h3>
 <p>BSL navigation (go-to-definition, symbol search, call graphs) only works when exported BSL files are present on the server. Without them, tools like <code>definition</code>, <code>symbol_explore</code>, <code>call_graph</code> will return empty results. There are two ways to get the BSL files:</p>
