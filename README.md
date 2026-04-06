@@ -6,6 +6,8 @@
 
 ![Dashboard](docs/dashboard.png)
 
+![Dashboard Settings](docs/dashboard-settings.png)
+
 ---
 
 ## Содержание
