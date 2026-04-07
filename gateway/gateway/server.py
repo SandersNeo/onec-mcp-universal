@@ -518,7 +518,7 @@ async def action_api(request: Request) -> JSONResponse:
                     from .backends.manager import BackendManager
                     lsp = _manager._db_backends.get(db_name, {}).get("lsp")
                     if lsp:
-                        result = await lsp.call_tool("did_change_watched_files", {"path": "/projects"})
+                        result = await lsp.call_tool("did_change_watched_files", {"path": "/projects", "language": "bsl"})
                         resp = result.content[0].text if result.content else ""
                         return JSONResponse({"ok": True, "message": f"Переиндексация BSL для '{db_name}' запущена.\n{resp}"})
                 except Exception as exc:

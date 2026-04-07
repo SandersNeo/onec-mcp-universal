@@ -238,8 +238,8 @@ td{padding:4px 6px;border-bottom:1px solid #1e293b;color:#cbd5e1;overflow:hidden
 </div>
 <div class="header-right">
 <div class="lang-sw">
-<a href="/dashboard?lang=ru" class="{{ru_on}}">RU</a>
-<a href="/dashboard?lang=en" class="{{en_on}}">EN</a>
+<a href="#" onclick="location.href='/dashboard?lang=ru'+location.hash;return false;" class="{{ru_on}}">RU</a>
+<a href="#" onclick="location.href='/dashboard?lang=en'+location.hash;return false;" class="{{en_on}}">EN</a>
 </div>
 <a class="btn" href="/dashboard/docs?lang={{lang}}" target="_blank">{{btn_docs}}</a>
 <button class="btn" onclick="location.reload()">{{btn_refresh}}</button>
@@ -322,26 +322,37 @@ document.querySelectorAll('.tab').forEach(t=>{if(t.textContent&&t.onclick&&t.onc
 }else{document.querySelector('.tc').classList.add('on');document.querySelector('.tab').classList.add('on')}
 }})();
 function reload(){var h=location.hash;location.href=location.pathname+'?lang={{lang}}'+h}
-function waitForDb(name,h){
-var t=setInterval(function(){
-fetch('/api/action/db-status?name='+encodeURIComponent(name),{method:'POST'}).then(r=>r.json()).then(d=>{
-if(d.connected){clearInterval(t);location.href=location.pathname+'?lang={{lang}}'+h;}
-}).catch(function(){});
-},1500);
-setTimeout(function(){clearInterval(t);location.href=location.pathname+'?lang={{lang}}'+h},120000);
-}
 function act(u){fetch(u,{method:'POST'}).then(r=>r.json()).then(d=>{
 var msg=d.message||d.error||'OK';
 var h=location.hash||'';
 if(u.includes('reconnect')){
 var m=u.match(/name=([^&]+)/);var name=m?decodeURIComponent(m[1]):'';
-showToast(msg);
-waitForDb(name,h);
+location.href=location.pathname+'?lang={{lang}}&reconnecting='+encodeURIComponent(name)+h;
 }else{
 var delay=u.includes('disconnect')?1000:100;
 setTimeout(function(){location.href=location.pathname+'?lang={{lang}}&msg='+encodeURIComponent(msg)+h},delay);
 }
 }).catch(e=>showToast(e))}
+// Auto-poll after reconnect redirect
+(function(){
+var p=new URLSearchParams(location.search);
+var rn=p.get('reconnecting');
+if(!rn)return;
+var lang=p.get('lang')||'ru';
+var h=location.hash||'';
+var base=location.pathname+'?lang='+lang;
+// Show indicator next to the DB name in management table
+document.querySelectorAll('span,td').forEach(function(el){
+if(el.textContent.trim()===rn){el.insertAdjacentHTML('afterend','<span id="rc-badge" style="margin-left:6px;color:#38bdf8;font-size:.72rem">&#8635; подключение...</span>');}
+});
+var t=setInterval(function(){
+fetch('/api/action/db-status?name='+encodeURIComponent(rn),{method:'POST'})
+.then(function(r){return r.json();}).then(function(d){
+if(d.connected){clearInterval(t);location.href=base+h;}
+}).catch(function(){});
+},2000);
+setTimeout(function(){clearInterval(t);location.href=base+h;},120000);
+})();
 // Show message from URL param after reload
 (function(){var p=new URLSearchParams(location.search);var m=p.get('msg');if(m){
 var d=document.createElement('div');d.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#164e63;color:#22d3ee;padding:14px 24px;border-radius:8px;font-size:.9rem;z-index:999;max-width:500px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.5)';
@@ -625,7 +636,7 @@ DOCS_HTML = {
 <ol>
 <li><a href="#overview-ru">Обзор</a> - что это, зачем нужно, архитектура</li>
 <li><a href="#status-ru">Вкладка "Статус"</a> - базы данных, профилирование, анонимизация, кеш, бэкенды, Docker</li>
-<li><a href="#params-ru">Вкладка "Параметры"</a> - управление базами, конфигурация, действия</li>
+<li><a href="#params-ru">Вкладка "Настройки"</a> - управление базами, конфигурация, действия</li>
 <li><a href="#epf-ru">Обработка MCPToolkit.epf</a> - интерфейс, кнопки, безопасность, журнал, автономный режим</li>
 <li><a href="#remote-ru">Удалённое подключение</a> - развёртывание на сервере 1С, что работает, что нет</li>
 <li><a href="#tools-ru">MCP-инструменты</a> - полный список 47 инструментов</li>
@@ -725,7 +736,7 @@ MCPToolkit.epf (обработка внутри клиента 1С)
 <tr><td><b>Попадания</b></td><td>Процент запросов, обслуженных из кеша (hit rate). Значение 80-100% означает, что кеш работает эффективно. Низкий процент может означать, что AI запрашивает каждый раз разные объекты, или что TTL слишком короткий.</td></tr>
 <tr><td><b>TTL</b></td><td>Время жизни записи кеша в секундах. По умолчанию - 600 секунд (10 минут). Настраивается через переменную <code>METADATA_CACHE_TTL</code> в файле <code>.env</code>. Значение 0 полностью отключает кеширование.</td></tr>
 </table>
-<p><b>Когда очищать кеш:</b> После изменения структуры конфигурации 1С (добавление/удаление реквизитов, табличных частей, объектов метаданных). Очистить можно кнопкой на вкладке «Параметры», через MCP-инструмент <code>invalidate_metadata_cache</code>, или дождаться автоматической инвалидации по TTL.</p>
+<p><b>Когда очищать кеш:</b> После изменения структуры конфигурации 1С (добавление/удаление реквизитов, табличных частей, объектов метаданных). Очистить можно кнопкой на вкладке «Настройки», через MCP-инструмент <code>invalidate_metadata_cache</code>, или дождаться автоматической инвалидации по TTL.</p>
 
 <h3>Карточка «Бэкенды»</h3>
 <p>Бэкенд - это отдельный MCP-сервер, который предоставляет набор инструментов определённой категории. Шлюз агрегирует инструменты всех бэкендов и предоставляет их AI-ассистенту как единый набор.</p>
@@ -772,16 +783,19 @@ MCPToolkit.epf (обработка внутри клиента 1С)
 </ul>
 
 <!-- ================================================================== -->
-<h2 id="params-ru">3. Вкладка «Параметры»</h2>
-<p>Вкладка «Параметры» содержит инструменты управления: подключение и отключение баз данных, редактирование конфигурации шлюза, действия с кешем и анонимизацией.</p>
+<h2 id="params-ru">3. Вкладка «Настройки»</h2>
+<p>Вкладка «Настройки» содержит инструменты управления: подключение и отключение баз данных, редактирование конфигурации шлюза, действия с кешем и анонимизацией.</p>
 
 <h3>Управление базами данных</h3>
-<p>Верхняя часть карточки - таблица подключённых баз (аналогична карточке «Базы данных» на вкладке «Статус»), но с дополнительными кнопками управления у каждой базы:</p>
+<p>Карточка «Управление базами данных» содержит таблицу баз с кнопками управления. Имя отключённой базы отображается <span style="text-decoration:line-through;color:#64748b">зачёркнутым</span>.</p>
 <table>
 <tr><th>Кнопка</th><th>Описание</th></tr>
-<tr><td><b>По умолч.</b></td><td>Устанавливает базу как используемую по умолчанию для новых сеансов AI. Кнопка отображается только у баз, которые ещё <b>не являются</b> базой по умолчанию. После нажатия рядом с именем базы появляется бирка <span style="background:#164e63;color:#22d3ee;padding:1px 6px;border-radius:3px;font-size:.75rem">по умолч.</span>.</td></tr>
-<tr><td><b>Изменить</b></td><td>Открывает диалог редактирования строки подключения и пути к проекту. После сохранения изменений необходимо переподключить базу для применения новых параметров.</td></tr>
-<tr><td><b>Отключить</b></td><td>Останавливает и удаляет Docker-контейнеры базы (<code>onec-toolkit-{имя}</code> и <code>mcp-lsp-{имя}</code>). <b>Данные информационной базы 1С и выгруженные BSL-исходники на диске не затрагиваются</b> - удаляются только контейнеры. Базу можно подключить снова в любой момент.</td></tr>
+<tr><td><b>По умолч.</b></td><td>Устанавливает базу как используемую по умолчанию для новых сеансов AI. Отображается только у баз, которые ещё не являются базой по умолчанию.</td></tr>
+<tr><td><b>Изменить</b></td><td>Открывает диалог редактирования строки подключения и пути к проекту. После сохранения необходимо переподключить базу.</td></tr>
+<tr><td><b>Переиндексация BSL</b></td><td>Запускает повторную индексацию BSL-исходников в LSP-контейнере базы. Используйте после выгрузки новых исходников или обновления конфигурации.</td></tr>
+<tr><td><b style="color:#ef4444">Отключить</b></td><td>Мягкое отключение: останавливает Docker-контейнеры базы, удаляет активные бэкенды, но <b>оставляет запись в реестре</b>. После отключения кнопка меняется на «Подключить». Данные 1С и BSL-исходники не затрагиваются.</td></tr>
+<tr><td><b>Подключить</b></td><td>Повторное подключение отключённой базы: запускает контейнеры заново из сохранённой конфигурации. Страница автоматически обновляется когда контейнеры готовы. MCPToolkit.epf в 1С переподключится самостоятельно.</td></tr>
+<tr><td><b style="color:#ef4444">Удалить</b></td><td>Полное удаление: останавливает контейнеры и удаляет запись из реестра. Операция необратима — для повторного подключения потребуется заново заполнить форму «Добавить базу». Данные 1С не затрагиваются.</td></tr>
 </table>
 
 <h3>Добавление базы</h3>
@@ -798,7 +812,7 @@ MCPToolkit.epf (обработка внутри клиента 1С)
 <p>Базу 1С можно подключить к шлюзу тремя равноправными способами:</p>
 <ol>
 <li><b>Из обработки MCPToolkit.epf</b> (рекомендуемый) - откройте обработку в клиенте 1С:Предприятие, нажмите «Подключиться». Обработка автоматически определит имя базы и сервер, зарегистрирует базу в шлюзе и создаст Docker-контейнеры. Никакой ручной настройки не требуется.</li>
-<li><b>Из дашборда</b> - перейдите на вкладку «Параметры», заполните форму «Добавить базу» и нажмите «Подключить». После этого откройте MCPToolkit.epf в 1С и нажмите «Подключиться» для установки long-polling соединения.</li>
+<li><b>Из дашборда</b> - перейдите на вкладку «Настройки», заполните форму «Добавить базу» и нажмите «Подключить». После этого откройте MCPToolkit.epf в 1С и нажмите «Подключиться» для установки long-polling соединения.</li>
 <li><b>Через AI-ассистент</b> - напишите в чате с AI на естественном языке:
 <pre><code>Подключи базу ERP_DEMO, строка подключения Srvr=localhost;Ref=ERP_DEMO;, папка /home/user/projects/ERP_DEMO</code></pre>
 AI вызовет инструмент <code>connect_database</code> с указанными параметрами. После этого откройте MCPToolkit.epf в 1С и нажмите «Подключиться».</li>
@@ -1400,12 +1414,15 @@ MCPToolkit.epf (data processor inside 1C client)
 <p>The Settings tab contains management tools: connecting and disconnecting databases, editing gateway configuration, cache and anonymization actions.</p>
 
 <h3>Database Management</h3>
-<p>The upper part of the card is a table of connected databases (similar to the Databases card on the Status tab), but with additional control buttons for each database:</p>
+<p>The Database Management card shows a table of databases with control buttons. A disconnected database name is shown <span style="text-decoration:line-through;color:#64748b">struck through</span>.</p>
 <table>
 <tr><th>Button</th><th>Description</th></tr>
-<tr><td><b>Default</b></td><td>Sets the database as the default for new AI sessions. The button is only shown for databases that are <b>not yet</b> the default. After clicking, a badge <span style="background:#164e63;color:#22d3ee;padding:1px 6px;border-radius:3px;font-size:.75rem">default</span> appears next to the database name.</td></tr>
-<tr><td><b>Edit</b></td><td>Opens a dialog to edit the connection string and project path. After saving changes, you need to reconnect the database to apply the new parameters.</td></tr>
-<tr><td><b>Disconnect</b></td><td>Stops and removes the database Docker containers (<code>onec-toolkit-{name}</code> and <code>mcp-lsp-{name}</code>). <b>The 1C database data and exported BSL sources on disk are not affected</b>. Only containers are removed. The database can be reconnected at any time.</td></tr>
+<tr><td><b>Default</b></td><td>Sets the database as the default for new AI sessions. Shown only for databases that are not already the default.</td></tr>
+<tr><td><b>Edit</b></td><td>Opens a dialog to edit the connection string and project path. After saving, reconnect the database to apply changes.</td></tr>
+<tr><td><b>Reindex BSL</b></td><td>Triggers BSL re-indexing in the database's LSP container. Use after exporting new sources or updating the configuration.</td></tr>
+<tr><td><b style="color:#ef4444">Disconnect</b></td><td>Soft disconnect: stops Docker containers and removes active backends, but <b>keeps the registry entry</b>. The button changes to "Connect" afterwards. 1C data and BSL sources on disk are not affected.</td></tr>
+<tr><td><b>Connect</b></td><td>Reconnects a disconnected database: restarts containers from saved configuration. The page refreshes automatically when containers are ready. MCPToolkit.epf in 1C will reconnect on its own.</td></tr>
+<tr><td><b style="color:#ef4444">Delete</b></td><td>Full deletion: stops containers and removes the registry entry. Irreversible — you will need to re-fill the "Add Database" form to reconnect. 1C data is not affected.</td></tr>
 </table>
 
 <h3>Adding a Database</h3>
@@ -1829,7 +1846,7 @@ For full functionality: docker compose on the 1C server.</code></pre>
 <p><b>Symptom:</b> AI claims an object has an attribute that doesn't exist (or vice versa).</p>
 <p><b>Causes and solutions:</b></p>
 <ol>
-<li>Metadata cache contains stale data. Clear the cache: "Clear Cache" button on the Parameters tab or the <code>invalidate_metadata_cache</code> tool.</li>
+<li>Metadata cache contains stale data. Clear the cache: "Clear Cache" button on the Settings tab or the <code>invalidate_metadata_cache</code> tool.</li>
 <li>Reduce cache TTL in settings: <code>METADATA_CACHE_TTL=60</code> (1 minute instead of 10).</li>
 </ol>
 

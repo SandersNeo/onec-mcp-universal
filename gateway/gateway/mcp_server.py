@@ -787,7 +787,7 @@ async def _reindex_bsl(path: str) -> str:
         return "ERROR: LSP backend not available — cannot trigger re-index."
 
     try:
-        result = await manager.call_tool("did_change_watched_files", {"path": reindex_path})
+        result = await manager.call_tool("did_change_watched_files", {"path": reindex_path, "language": "bsl"})
         response_text = result.content[0].text if result.content else ""
         return f"Re-indexing triggered for '{active.name}' at {reindex_path}.\n{response_text}"
     except Exception as exc:
