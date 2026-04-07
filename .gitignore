@@ -17,3 +17,4 @@ htmlcov/
 *.swo
 test-runner/application.yml
 .v8-project.json
+docker-compose.override.yml
