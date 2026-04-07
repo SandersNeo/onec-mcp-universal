@@ -324,15 +324,11 @@ document.querySelectorAll('.tab').forEach(t=>{if(t.textContent&&t.onclick&&t.onc
 function reload(){var h=location.hash;location.href=location.pathname+'?lang={{lang}}'+h}
 function waitForDb(name,h){
 var t=setInterval(function(){
-fetch('/health').then(r=>r.json()).then(d=>{
-var keys=Object.keys(d.backends||{});
-if(keys.some(function(k){return k.startsWith(name+'/')&&d.backends[k].ok})){
-clearInterval(t);
-location.href=location.pathname+'?lang={{lang}}'+h;
-}
+fetch('/api/action/db-status?name='+encodeURIComponent(name),{method:'POST'}).then(r=>r.json()).then(d=>{
+if(d.connected){clearInterval(t);location.href=location.pathname+'?lang={{lang}}'+h;}
 }).catch(function(){});
 },1500);
-setTimeout(function(){clearInterval(t);location.href=location.pathname+'?lang={{lang}}'+h},90000);
+setTimeout(function(){clearInterval(t);location.href=location.pathname+'?lang={{lang}}'+h},120000);
 }
 function act(u){fetch(u,{method:'POST'}).then(r=>r.json()).then(d=>{
 var msg=d.message||d.error||'OK';

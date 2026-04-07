@@ -487,6 +487,10 @@ async def action_api(request: Request) -> JSONResponse:
         asyncio.create_task(_do_reconnect())
         return JSONResponse({"ok": True, "message": f"Подключение базы '{db_name}' запущено. Страница обновится автоматически."})
 
+    if path == "db-status":
+        db_name = request.query_params.get("name", "")
+        return JSONResponse({"connected": _manager.has_db(db_name)})
+
     if path == "get-env":
         return JSONResponse({"ok": True, "env": _read_env_file()})
 
