@@ -325,8 +325,13 @@ function reload(){var h=location.hash;location.href=location.pathname+'?lang={{l
 function act(u){fetch(u,{method:'POST'}).then(r=>r.json()).then(d=>{
 var msg=d.message||d.error||'OK';
 var h=location.hash||'';
+if(u.includes('reconnect')){
+showToast(msg);
+setTimeout(function(){location.href=location.pathname+'?lang={{lang}}'+h},8000);
+}else{
 var delay=u.includes('disconnect')?1000:100;
 setTimeout(function(){location.href=location.pathname+'?lang={{lang}}&msg='+encodeURIComponent(msg)+h},delay);
+}
 }).catch(e=>showToast(e))}
 // Show message from URL param after reload
 (function(){var p=new URLSearchParams(location.search);var m=p.get('msg');if(m){

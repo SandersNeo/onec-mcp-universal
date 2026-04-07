@@ -446,7 +446,8 @@ async def action_api(request: Request) -> JSONResponse:
         return JSONResponse({"ok": True, "message": f"База '{db_name}' удалена из реестра."})
 
     if path == "reconnect":
-        # Reconnect a database that's in registry but not in manager
+        # Reconnect a database that's in registry but not in manager.
+        # Starts containers in background and returns immediately.
         db_name = request.query_params.get("name", "")
         if not db_name:
             return JSONResponse({"error": "name parameter required"}, status_code=400)
@@ -455,33 +456,36 @@ async def action_api(request: Request) -> JSONResponse:
             return JSONResponse({"error": f"База '{db_name}' не найдена в реестре."}, status_code=404)
         if _manager.has_db(db_name):
             return JSONResponse({"ok": True, "message": f"База '{db_name}' уже подключена."})
-        try:
+
+        async def _do_reconnect():
             from .docker_manager import start_toolkit, start_lsp
             loop = asyncio.get_running_loop()
-            toolkit_port, toolkit_container = await asyncio.wait_for(
-                loop.run_in_executor(None, start_toolkit, db_name), timeout=120
-            )
-            lsp_container = await asyncio.wait_for(
-                loop.run_in_executor(None, start_lsp, db_name, db.project_path), timeout=60
-            )
-            db.toolkit_port = toolkit_port
-            db.toolkit_url = f"http://localhost:{toolkit_port}/mcp"
-            db.lsp_container = lsp_container
-            db.connected = False  # EPF must re-register
+            try:
+                toolkit_port, toolkit_container = await asyncio.wait_for(
+                    loop.run_in_executor(None, start_toolkit, db_name), timeout=120
+                )
+                lsp_container = await asyncio.wait_for(
+                    loop.run_in_executor(None, start_lsp, db_name, db.project_path), timeout=60
+                )
+                db.toolkit_port = toolkit_port
+                db.toolkit_url = f"http://localhost:{toolkit_port}/mcp"
+                db.lsp_container = lsp_container
+                db.connected = False  # EPF must re-register
 
-            toolkit_backend = HttpBackend(
-                f"onec-toolkit-{db_name}", db.toolkit_url, "streamable"
-            )
-            lsp_backend = StdioBackend(
-                f"mcp-lsp-{db_name}", "docker",
-                ["exec", "-w", "/projects", "-i", lsp_container, "mcp-lsp-bridge"],
-            )
-            await _manager.add_db_backends(db_name, toolkit_backend, lsp_backend)
-            logger.info(f"Reconnected database from dashboard: {db_name}")
-            return JSONResponse({"ok": True, "message": f"База '{db_name}' подключена. Обработка появится в 1С через несколько секунд."})
-        except Exception as exc:
-            logger.error(f"Failed to reconnect database '{db_name}': {exc}")
-            return JSONResponse({"error": f"Ошибка подключения: {exc}"}, status_code=500)
+                toolkit_backend = HttpBackend(
+                    f"onec-toolkit-{db_name}", db.toolkit_url, "streamable"
+                )
+                lsp_backend = StdioBackend(
+                    f"mcp-lsp-{db_name}", "docker",
+                    ["exec", "-w", "/projects", "-i", lsp_container, "mcp-lsp-bridge"],
+                )
+                await _manager.add_db_backends(db_name, toolkit_backend, lsp_backend)
+                logger.info(f"Reconnected database from dashboard: {db_name}")
+            except Exception as exc:
+                logger.error(f"Failed to reconnect database '{db_name}': {exc}")
+
+        asyncio.create_task(_do_reconnect())
+        return JSONResponse({"ok": True, "message": f"Подключение базы '{db_name}' запущено. Страница обновится автоматически."})
 
     if path == "get-env":
         return JSONResponse({"ok": True, "env": _read_env_file()})
