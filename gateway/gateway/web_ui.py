@@ -322,12 +322,25 @@ document.querySelectorAll('.tab').forEach(t=>{if(t.textContent&&t.onclick&&t.onc
 }else{document.querySelector('.tc').classList.add('on');document.querySelector('.tab').classList.add('on')}
 }})();
 function reload(){var h=location.hash;location.href=location.pathname+'?lang={{lang}}'+h}
+function waitForDb(name,h){
+var t=setInterval(function(){
+fetch('/health').then(r=>r.json()).then(d=>{
+var keys=Object.keys(d.backends||{});
+if(keys.some(function(k){return k.startsWith(name+'/')&&d.backends[k].ok})){
+clearInterval(t);
+location.href=location.pathname+'?lang={{lang}}'+h;
+}
+}).catch(function(){});
+},1500);
+setTimeout(function(){clearInterval(t);location.href=location.pathname+'?lang={{lang}}'+h},90000);
+}
 function act(u){fetch(u,{method:'POST'}).then(r=>r.json()).then(d=>{
 var msg=d.message||d.error||'OK';
 var h=location.hash||'';
 if(u.includes('reconnect')){
+var m=u.match(/name=([^&]+)/);var name=m?decodeURIComponent(m[1]):'';
 showToast(msg);
-setTimeout(function(){location.href=location.pathname+'?lang={{lang}}'+h},8000);
+waitForDb(name,h);
 }else{
 var delay=u.includes('disconnect')?1000:100;
 setTimeout(function(){location.href=location.pathname+'?lang={{lang}}&msg='+encodeURIComponent(msg)+h},delay);
