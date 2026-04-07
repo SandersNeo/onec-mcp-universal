@@ -453,7 +453,7 @@ def render_dashboard(
             conn = db.get("connection", "")
             default_icon = '<span class="dot ok" style="display:inline-block"></span>' if db.get("active") else ""
             name_style = 'text-decoration:line-through;color:#64748b' if not backend_connected else ''
-            rows.append(f'<tr><td><b style="{name_style}">{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td style="text-align:center"><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
+            rows.append(f'<tr><td><span style="{name_style}">{db["name"]}</span></td><td style="font-size:.78rem">{conn}</td><td style="text-align:center"><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
         rows.append("</table>")
         databases_html = "\n".join(rows)
     else:
@@ -522,7 +522,7 @@ def render_dashboard(
             sep = '<tr><td colspan="4" style="padding:0"><hr style="border:none;border-top:1px solid #334155;margin:4px 0"></td></tr>' if i > 0 else ""
             # Name: strikethrough if backend not connected
             name_style = 'text-decoration:line-through;color:#64748b' if not backend_connected else ''
-            name_cell = f'<b style="{name_style}">{db["name"]}</b>'
+            name_cell = f'<span style="{name_style}">{db["name"]}</span>'
             # Default column: green dot or button (only when connected)
             if is_default and backend_connected:
                 default_cell = '<span class="dot ok" style="display:inline-block"></span>'
