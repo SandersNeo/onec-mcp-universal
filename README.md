@@ -134,20 +134,34 @@ Claude Code / Cursor / Windsurf
 
 ## Quick Start
 
+### Linux
+
 ```bash
 git clone https://github.com/AlekseiSeleznev/onec-mcp-universal.git
 cd onec-mcp-universal
 ./setup.sh
 ```
 
-The script will:
-1. Create `.env` with default settings (port 8080, auto-detect 1C platform)
-2. Build and start all containers (gateway + onec-toolkit + platform-context)
-3. Register the MCP server in Claude Code
+### Windows
 
-**Prerequisites:** Docker, Docker Compose V2, 1C:Предприятие platform in `/opt/1cv8`.
+**Требуется** [Git for Windows](https://gitforwindows.org/) (включает Git Bash) или WSL2.
 
-After setup, open Claude Code and run `/mcp` to verify the connection.
+```bash
+git clone https://github.com/AlekseiSeleznev/onec-mcp-universal.git
+cd onec-mcp-universal
+./setup.sh
+```
+
+### Что делает `setup.sh`
+
+1. Определяет ОС — на Windows автоматически создаёт `docker-compose.override.yml` из `docker-compose.windows.yml` (bridge-сеть с `host.docker.internal`)
+2. Создаёт `.env` из `.env.example` (порт 8080, **авто-определение пути к платформе 1С** на Linux)
+3. На Windows/macOS автоматически подставляет `EXPORT_HOST_URL=http://host.docker.internal:8082`
+4. Собирает и запускает все контейнеры (`restart: always` — переживает перезагрузку)
+5. Ждёт healthcheck (до 90 секунд — бэкенды стартуют дольше)
+6. Регистрирует MCP-сервер в Claude Code через `claude mcp add`
+
+После установки откройте Claude Code и выполните `/mcp` для проверки.
 
 **Dashboard:** [http://localhost:8080/dashboard](http://localhost:8080/dashboard)
 
@@ -320,10 +334,12 @@ curl http://localhost:8080/health
 
 ## Подключение к AI-ассистенту
 
+`setup.sh` регистрирует сервер в Claude Code автоматически. Если нужно вручную:
+
 ### Claude Code
 
 ```bash
-claude mcp add onec --transport http http://localhost:8080/mcp
+claude mcp add --transport http -s user onec-universal http://localhost:8080/mcp
 ```
 
 ### Cursor
