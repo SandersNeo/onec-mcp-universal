@@ -59,6 +59,7 @@ _T = {
         "project": "GitHub",
         "connect_db": "Подключить базу",
         "disconnect_db": "Отключить",
+        "reconnect_db": "Подключить",
         "remove_db": "Удалить",
         "confirm_remove": "Удалить базу",
         "clear_cache": "Очистить кеш",
@@ -138,6 +139,7 @@ _T = {
         "project": "GitHub",
         "connect_db": "Connect DB",
         "disconnect_db": "Disconnect",
+        "reconnect_db": "Connect",
         "remove_db": "Delete",
         "confirm_remove": "Delete database",
         "clear_cache": "Clear Cache",
@@ -380,14 +382,14 @@ document.getElementById('config-edit').style.display='none';
 function confirmDisconnect(name){
 var ov=document.createElement('div');
 ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center';
-ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:16px">{{confirm_disconnect}} '+name+'?</h3><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/disconnect?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #991b1b;background:transparent;color:#fca5a5;cursor:pointer;font-size:.8rem">{{disconnect_db}}</button></div></div>';
+ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:16px">{{confirm_disconnect}} '+name+'?</h3><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/disconnect?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #ef4444;background:transparent;color:#ef4444;cursor:pointer;font-size:.8rem">{{disconnect_db}}</button></div></div>';
 document.body.appendChild(ov);
 ov.addEventListener('click',function(e){if(e.target===ov)ov.remove()});
 }
 function confirmRemove(name){
 var ov=document.createElement('div');
 ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center';
-ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:8px">{{confirm_remove}} '+name+'?</h3><p style="color:#94a3b8;font-size:.78rem;margin-bottom:16px">База будет удалена из реестра без возможности восстановления.</p><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/remove?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #991b1b;background:transparent;color:#fca5a5;cursor:pointer;font-size:.8rem">{{remove_db}}</button></div></div>';
+ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:8px">{{confirm_remove}} '+name+'?</h3><p style="color:#94a3b8;font-size:.78rem;margin-bottom:16px">База будет удалена из реестра без возможности восстановления.</p><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/remove?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #ef4444;background:transparent;color:#ef4444;cursor:pointer;font-size:.8rem">{{remove_db}}</button></div></div>';
 document.body.appendChild(ov);
 ov.addEventListener('click',function(e){if(e.target===ov)ov.remove()});
 }
@@ -493,19 +495,27 @@ def render_dashboard(
         for i, db in enumerate(sorted(databases, key=lambda d: d.get('name', ''))):
             is_default = db.get("active", False)
             epf_connected = db.get("epf_connected", False)
+            backend_connected = db.get("backend_connected", True)  # is DB in manager
             epf_dot = "ok" if epf_connected else "warn"
             epf_st = f'<span class="dot {epf_dot}" style="display:inline-block"></span>'
             conn = db.get("connection", "")
             proj = db.get("project_path", "")
             sep = '<tr><td colspan="4" style="padding:0"><hr style="border:none;border-top:1px solid #334155;margin:4px 0"></td></tr>' if i > 0 else ""
-            # Default column: green dot or button
-            if is_default:
+            # Name: strikethrough if backend not connected
+            name_style = 'text-decoration:line-through;color:#64748b' if not backend_connected else ''
+            name_cell = f'<b style="{name_style}">{db["name"]}</b>'
+            # Default column: green dot or button (only when connected)
+            if is_default and backend_connected:
                 default_cell = '<span class="dot ok" style="display:inline-block"></span>'
-            else:
+            elif backend_connected:
                 default_cell = (
                     f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
                     f'onclick="act(\'/api/action/switch?name={db["name"]}\')">{t["configure"]}</button>'
                 )
+            else:
+                default_cell = ""
+            # Crimson outlined button style
+            _crimson = 'background:transparent;border-color:#ef4444;color:#ef4444'
             # Action buttons under DB
             edit_btn = (
                 f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
@@ -515,26 +525,33 @@ def render_dashboard(
                 f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
                 f'onclick="act(\'/api/action/reindex-bsl?name={db["name"]}\')">{t["reindex_bsl"]}</button> '
             )
-            disc_btn = (
-                f'<button class="btn" style="font-size:.65rem;padding:2px 6px;background:transparent;border-color:#991b1b;color:#fca5a5" '
-                f'onclick="confirmDisconnect(\'{db["name"]}\')">'
-                f'{t["disconnect_db"]}</button>'
-            )
+            if backend_connected:
+                connect_toggle_btn = (
+                    f'<button class="btn" style="font-size:.65rem;padding:2px 6px;{_crimson}" '
+                    f'onclick="confirmDisconnect(\'{db["name"]}\')">'
+                    f'{t["disconnect_db"]}</button>'
+                )
+            else:
+                connect_toggle_btn = (
+                    f'<button class="btn" style="font-size:.65rem;padding:2px 6px" '
+                    f'onclick="act(\'/api/action/reconnect?name={db["name"]}\')">'
+                    f'{t["reconnect_db"]}</button>'
+                )
             remove_btn = (
-                f'<button class="btn" style="font-size:.65rem;padding:2px 6px;background:transparent;border-color:#991b1b;color:#fca5a5" '
+                f'<button class="btn" style="font-size:.65rem;padding:2px 6px;{_crimson}" '
                 f'onclick="confirmRemove(\'{db["name"]}\')">'
                 f'{t["remove_db"]}</button>'
             )
             db_blocks.append(
                 f'{sep}'
                 f'<tr style="vertical-align:middle">'
-                f'<td><b>{db["name"]}</b></td>'
+                f'<td>{name_cell}</td>'
                 f'<td style="font-size:.75rem">{conn}</td>'
                 f'<td style="text-align:center">{epf_st}</td>'
                 f'<td style="text-align:center">{default_cell}</td>'
                 f'</tr>'
                 f'<tr><td colspan="4" style="padding:2px 6px">'
-                f'{edit_btn}{reindex_btn}{disc_btn} {remove_btn}'
+                f'{edit_btn}{reindex_btn}{connect_toggle_btn} {remove_btn}'
                 f'</td></tr>'
             )
         db_mgmt_html = (

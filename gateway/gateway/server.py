@@ -246,9 +246,14 @@ async def dashboard(request: Request) -> HTMLResponse:
     container_info = _get_container_info()
     docker_system = _get_docker_system_info()
 
+    # Enrich registry list with backend connectivity state
+    databases_list = _registry.list()
+    for db in databases_list:
+        db["backend_connected"] = _manager.has_db(db["name"])
+
     html = render_dashboard(
         backends_status=_manager.status(),
-        databases=_registry.list(),
+        databases=databases_list,
         profiling_stats=profiler.get_stats(),
         cache_stats=metadata_cache.stats(),
         anon_enabled=anonymizer.enabled,
@@ -421,7 +426,7 @@ async def action_api(request: Request) -> JSONResponse:
             except Exception:
                 pass
         threading.Thread(target=_bg_stop_disc, daemon=True).start()
-        return JSONResponse({"ok": True, "message": f"База '{db_name}' отключена. Для повторного подключения используйте EPF."})
+        return JSONResponse({"ok": True, "message": f"База '{db_name}' отключена."})
 
     if path == "remove":
         # Hard delete: stop containers + remove from manager + remove from registry
@@ -439,6 +444,44 @@ async def action_api(request: Request) -> JSONResponse:
                 pass
         threading.Thread(target=_bg_stop_remove, daemon=True).start()
         return JSONResponse({"ok": True, "message": f"База '{db_name}' удалена из реестра."})
+
+    if path == "reconnect":
+        # Reconnect a database that's in registry but not in manager
+        db_name = request.query_params.get("name", "")
+        if not db_name:
+            return JSONResponse({"error": "name parameter required"}, status_code=400)
+        db = _registry.get(db_name)
+        if not db:
+            return JSONResponse({"error": f"База '{db_name}' не найдена в реестре."}, status_code=404)
+        if _manager.has_db(db_name):
+            return JSONResponse({"ok": True, "message": f"База '{db_name}' уже подключена."})
+        try:
+            from .docker_manager import start_toolkit, start_lsp
+            loop = asyncio.get_running_loop()
+            toolkit_port, toolkit_container = await asyncio.wait_for(
+                loop.run_in_executor(None, start_toolkit, db_name), timeout=120
+            )
+            lsp_container = await asyncio.wait_for(
+                loop.run_in_executor(None, start_lsp, db_name, db.project_path), timeout=60
+            )
+            db.toolkit_port = toolkit_port
+            db.toolkit_url = f"http://localhost:{toolkit_port}/mcp"
+            db.lsp_container = lsp_container
+            db.connected = False  # EPF must re-register
+
+            toolkit_backend = HttpBackend(
+                f"onec-toolkit-{db_name}", db.toolkit_url, "streamable"
+            )
+            lsp_backend = StdioBackend(
+                f"mcp-lsp-{db_name}", "docker",
+                ["exec", "-w", "/projects", "-i", lsp_container, "mcp-lsp-bridge"],
+            )
+            await _manager.add_db_backends(db_name, toolkit_backend, lsp_backend)
+            logger.info(f"Reconnected database from dashboard: {db_name}")
+            return JSONResponse({"ok": True, "message": f"База '{db_name}' подключена. Обработка появится в 1С через несколько секунд."})
+        except Exception as exc:
+            logger.error(f"Failed to reconnect database '{db_name}': {exc}")
+            return JSONResponse({"error": f"Ошибка подключения: {exc}"}, status_code=500)
 
     if path == "get-env":
         return JSONResponse({"ok": True, "env": _read_env_file()})

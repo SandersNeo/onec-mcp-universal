@@ -135,6 +135,10 @@ class BackendManager:
                     tools.extend(b.tools)
         return tools
 
+    def has_db(self, name: str) -> bool:
+        """Return True if the database has active backends in the manager."""
+        return name in self._db_backends
+
     def has_tool(self, name: str) -> bool:
         if name in self._tool_map:
             return True
