@@ -448,11 +448,12 @@ def render_dashboard(
                 f'<tr><th>{t["name"]}</th><th>{t["connection"]}</th><th style="text-align:center">{t["status"]}</th><th style="text-align:center">{t["default_badge"]}</th></tr>']
         for db in sorted(databases, key=lambda d: d.get('name', '')):
             epf_connected = db.get("epf_connected", False)
+            backend_connected = db.get("backend_connected", True)
             epf_dot = "ok" if epf_connected else "warn"
-            epf = t["epf_ok"] if epf_connected else t["epf_wait"]
             conn = db.get("connection", "")
             default_icon = '<span class="dot ok" style="display:inline-block"></span>' if db.get("active") else ""
-            rows.append(f'<tr><td><b>{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td style="text-align:center"><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
+            name_style = 'text-decoration:line-through;color:#64748b' if not backend_connected else ''
+            rows.append(f'<tr><td><b style="{name_style}">{db["name"]}</b></td><td style="font-size:.78rem">{conn}</td><td style="text-align:center"><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
         rows.append("</table>")
         databases_html = "\n".join(rows)
     else:
