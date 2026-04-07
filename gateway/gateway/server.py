@@ -404,22 +404,41 @@ async def action_api(request: Request) -> JSONResponse:
         return JSONResponse({"ok": True, "message": f"Параметры базы '{db_name}' обновлены. Переподключите базу для применения."})
 
     if path == "disconnect":
+        # Soft disconnect: stop containers + remove from manager, keep in registry
         db_name = request.query_params.get("name", "")
         if not db_name:
             return JSONResponse({"error": "name parameter required"}, status_code=400)
-        # Remove from registry immediately (UI updates fast)
         await _manager.remove_db_backends(db_name)
-        _registry.remove(db_name)
+        db = _registry.get(db_name)
+        if db:
+            db.connected = False
         # Stop containers in background (slow Docker stop)
         import threading
-        def _bg_stop():
+        def _bg_stop_disc():
             try:
                 from .docker_manager import stop_db_containers
                 stop_db_containers(db_name)
             except Exception:
                 pass
-        threading.Thread(target=_bg_stop, daemon=True).start()
-        return JSONResponse({"ok": True, "message": f"База '{db_name}' отключена."})
+        threading.Thread(target=_bg_stop_disc, daemon=True).start()
+        return JSONResponse({"ok": True, "message": f"База '{db_name}' отключена. Для повторного подключения используйте EPF."})
+
+    if path == "remove":
+        # Hard delete: stop containers + remove from manager + remove from registry
+        db_name = request.query_params.get("name", "")
+        if not db_name:
+            return JSONResponse({"error": "name parameter required"}, status_code=400)
+        await _manager.remove_db_backends(db_name)
+        _registry.remove(db_name)
+        import threading
+        def _bg_stop_remove():
+            try:
+                from .docker_manager import stop_db_containers
+                stop_db_containers(db_name)
+            except Exception:
+                pass
+        threading.Thread(target=_bg_stop_remove, daemon=True).start()
+        return JSONResponse({"ok": True, "message": f"База '{db_name}' удалена из реестра."})
 
     if path == "get-env":
         return JSONResponse({"ok": True, "env": _read_env_file()})

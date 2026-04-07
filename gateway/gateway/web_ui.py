@@ -59,6 +59,8 @@ _T = {
         "project": "GitHub",
         "connect_db": "Подключить базу",
         "disconnect_db": "Отключить",
+        "remove_db": "Удалить",
+        "confirm_remove": "Удалить базу",
         "clear_cache": "Очистить кеш",
         "toggle_anon": "Анонимизация вкл/выкл",
         "restart_hint": "Шлюз перезапустится автоматически после сохранения.",
@@ -86,6 +88,7 @@ _T = {
         "add_db": "Добавить базу",
         "edit_db": "Изменить",
         "confirm_disconnect": "Отключить базу",
+        "confirm_remove": "Удалить базу",
         "default_badge": "По умолчанию",
         "edit_db_title": "Редактирование базы",
         "save": "Сохранить",
@@ -135,6 +138,8 @@ _T = {
         "project": "GitHub",
         "connect_db": "Connect DB",
         "disconnect_db": "Disconnect",
+        "remove_db": "Delete",
+        "confirm_remove": "Delete database",
         "clear_cache": "Clear Cache",
         "toggle_anon": "Toggle Anonymization",
         "restart_hint": "Gateway will restart automatically after saving.",
@@ -162,6 +167,7 @@ _T = {
         "add_db": "Add Database",
         "edit_db": "Edit",
         "confirm_disconnect": "Disconnect database",
+        "confirm_remove": "Delete database",
         "default_badge": "Default",
         "edit_db_title": "Edit Database",
         "save": "Save",
@@ -374,7 +380,14 @@ document.getElementById('config-edit').style.display='none';
 function confirmDisconnect(name){
 var ov=document.createElement('div');
 ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center';
-ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:16px">{{confirm_disconnect}} '+name+'?</h3><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/disconnect?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #991b1b;background:#991b1b;color:#fff;cursor:pointer;font-size:.8rem">{{disconnect_db}}</button></div></div>';
+ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:16px">{{confirm_disconnect}} '+name+'?</h3><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/disconnect?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #991b1b;background:transparent;color:#fca5a5;cursor:pointer;font-size:.8rem">{{disconnect_db}}</button></div></div>';
+document.body.appendChild(ov);
+ov.addEventListener('click',function(e){if(e.target===ov)ov.remove()});
+}
+function confirmRemove(name){
+var ov=document.createElement('div');
+ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center';
+ov.innerHTML='<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:20px;width:360px;max-width:90%;text-align:center"><h3 style="color:#f8fafc;font-size:.9rem;margin-bottom:8px">{{confirm_remove}} '+name+'?</h3><p style="color:#94a3b8;font-size:.78rem;margin-bottom:16px">База будет удалена из реестра без возможности восстановления.</p><div style="display:flex;gap:8px;justify-content:center"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:5px 14px;border-radius:5px;border:1px solid #475569;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.8rem">{{cancel}}</button><button onclick="this.closest(\'div[style*=fixed]\').remove();act(\'/api/action/remove?name='+name+'\')" style="padding:5px 14px;border-radius:5px;border:1px solid #991b1b;background:transparent;color:#fca5a5;cursor:pointer;font-size:.8rem">{{remove_db}}</button></div></div>';
 document.body.appendChild(ov);
 ov.addEventListener('click',function(e){if(e.target===ov)ov.remove()});
 }
@@ -503,9 +516,14 @@ def render_dashboard(
                 f'onclick="act(\'/api/action/reindex-bsl?name={db["name"]}\')">{t["reindex_bsl"]}</button> '
             )
             disc_btn = (
-                f'<button class="btn" style="font-size:.65rem;padding:2px 6px;background:#991b1b;border-color:#991b1b;color:#fff" '
+                f'<button class="btn" style="font-size:.65rem;padding:2px 6px;background:transparent;border-color:#991b1b;color:#fca5a5" '
                 f'onclick="confirmDisconnect(\'{db["name"]}\')">'
                 f'{t["disconnect_db"]}</button>'
+            )
+            remove_btn = (
+                f'<button class="btn" style="font-size:.65rem;padding:2px 6px;background:transparent;border-color:#991b1b;color:#fca5a5" '
+                f'onclick="confirmRemove(\'{db["name"]}\')">'
+                f'{t["remove_db"]}</button>'
             )
             db_blocks.append(
                 f'{sep}'
@@ -516,7 +534,7 @@ def render_dashboard(
                 f'<td style="text-align:center">{default_cell}</td>'
                 f'</tr>'
                 f'<tr><td colspan="4" style="padding:2px 6px">'
-                f'{edit_btn}{reindex_btn}{disc_btn}'
+                f'{edit_btn}{reindex_btn}{disc_btn} {remove_btn}'
                 f'</td></tr>'
             )
         db_mgmt_html = (
