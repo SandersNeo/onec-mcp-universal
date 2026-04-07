@@ -15,6 +15,7 @@
 - [Возможности](#возможности)
 - [Архитектура](#архитектура)
 - [Требования](#требования)
+- [Quick Start](#quick-start)
 - [Установка на Linux](#установка-на-linux)
 - [Установка на Windows](#установка-на-windows)
 - [Подключение к AI-ассистенту](#подключение-к-ai-ассистенту)
@@ -128,6 +129,27 @@ Claude Code / Cursor / Windsurf
 - **Linux** (Ubuntu 22.04+) или **Windows** 10/11 с Docker Desktop (WSL2)
 - **Платформа 1С:Предприятие** 8.3, установленная на хосте
 - **Информационная база 1С** (серверная или файловая)
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/AlekseiSeleznev/onec-mcp-universal.git
+cd onec-mcp-universal
+./setup.sh
+```
+
+The script will:
+1. Create `.env` with default settings (port 8080, auto-detect 1C platform)
+2. Build and start all containers (gateway + onec-toolkit + platform-context)
+3. Register the MCP server in Claude Code
+
+**Prerequisites:** Docker, Docker Compose V2, 1C:Предприятие platform in `/opt/1cv8`.
+
+After setup, open Claude Code and run `/mcp` to verify the connection.
+
+**Dashboard:** [http://localhost:8080/dashboard](http://localhost:8080/dashboard)
 
 ---
 

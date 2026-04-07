@@ -32,7 +32,7 @@ services:
         condition: service_healthy
       platform-context:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
 
   # ─── 1C Data Backend ──────────────────────────────────────────────────────────
   onec-toolkit:
@@ -51,7 +51,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    restart: unless-stopped
+    restart: always
     networks: [onec-net]
 
   # ─── 1C Platform Docs Backend ─────────────────────────────────────────────────
@@ -78,7 +78,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
-    restart: unless-stopped
+    restart: always
     networks: [onec-net]
 
   # ─── Test Runner (optional, activate with: docker compose --profile test-runner up -d)
