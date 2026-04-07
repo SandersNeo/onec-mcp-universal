@@ -341,10 +341,6 @@ if(!rn)return;
 var lang=p.get('lang')||'ru';
 var h=location.hash||'';
 var base=location.pathname+'?lang='+lang;
-// Show indicator next to the DB name in management table
-document.querySelectorAll('span,td').forEach(function(el){
-if(el.textContent.trim()===rn){el.insertAdjacentHTML('afterend','<span id="rc-badge" style="margin-left:6px;color:#38bdf8;font-size:.72rem">&#8635; подключение...</span>');}
-});
 var t=setInterval(function(){
 fetch('/api/action/db-status?name='+encodeURIComponent(rn),{method:'POST'})
 .then(function(r){return r.json();}).then(function(d){
@@ -459,7 +455,7 @@ def render_dashboard(
             epf_dot = "ok" if epf_connected else "warn"
             conn = db.get("connection", "")
             default_icon = '<span class="dot ok" style="display:inline-block"></span>' if db.get("active") else ""
-            name_style = 'text-decoration:line-through;color:#64748b' if not backend_connected else ''
+            name_style = 'text-decoration:line-through;color:#64748b;font-weight:bold' if not backend_connected else ''
             rows.append(f'<tr><td><span style="{name_style}">{db["name"]}</span></td><td style="font-size:.78rem">{conn}</td><td style="text-align:center"><span class="dot {epf_dot}" style="display:inline-block"></span></td><td style="text-align:center">{default_icon}</td></tr>')
         rows.append("</table>")
         databases_html = "\n".join(rows)
@@ -528,7 +524,7 @@ def render_dashboard(
             proj = db.get("project_path", "")
             sep = '<tr><td colspan="4" style="padding:0"><hr style="border:none;border-top:1px solid #334155;margin:4px 0"></td></tr>' if i > 0 else ""
             # Name: strikethrough if backend not connected
-            name_style = 'text-decoration:line-through;color:#64748b' if not backend_connected else ''
+            name_style = 'text-decoration:line-through;color:#64748b;font-weight:bold' if not backend_connected else ''
             name_cell = f'<span style="{name_style}">{db["name"]}</span>'
             # Default column: green dot or button (only when connected)
             if is_default and backend_connected:
@@ -787,7 +783,7 @@ MCPToolkit.epf (обработка внутри клиента 1С)
 <p>Вкладка «Настройки» содержит инструменты управления: подключение и отключение баз данных, редактирование конфигурации шлюза, действия с кешем и анонимизацией.</p>
 
 <h3>Управление базами данных</h3>
-<p>Карточка «Управление базами данных» содержит таблицу баз с кнопками управления. Имя отключённой базы отображается <span style="text-decoration:line-through;color:#64748b">зачёркнутым</span>.</p>
+<p>Карточка «Управление базами данных» содержит таблицу баз с кнопками управления. Имя отключённой базы отображается <span style="text-decoration:line-through;color:#64748b;font-weight:bold">жирным зачёркнутым</span> как на вкладке Статус, так и в Настройках.</p>
 <table>
 <tr><th>Кнопка</th><th>Описание</th></tr>
 <tr><td><b>По умолч.</b></td><td>Устанавливает базу как используемую по умолчанию для новых сеансов AI. Отображается только у баз, которые ещё не являются базой по умолчанию.</td></tr>
@@ -1414,7 +1410,7 @@ MCPToolkit.epf (data processor inside 1C client)
 <p>The Settings tab contains management tools: connecting and disconnecting databases, editing gateway configuration, cache and anonymization actions.</p>
 
 <h3>Database Management</h3>
-<p>The Database Management card shows a table of databases with control buttons. A disconnected database name is shown <span style="text-decoration:line-through;color:#64748b">struck through</span>.</p>
+<p>The Database Management card shows a table of databases with control buttons. A disconnected database name is shown <span style="text-decoration:line-through;color:#64748b;font-weight:bold">bold and struck through</span> in both the Status tab and Settings.</p>
 <table>
 <tr><th>Button</th><th>Description</th></tr>
 <tr><td><b>Default</b></td><td>Sets the database as the default for new AI sessions. Shown only for databases that are not already the default.</td></tr>

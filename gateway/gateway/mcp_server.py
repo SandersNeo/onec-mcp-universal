@@ -422,7 +422,7 @@ async def _run_export_bsl(connection: str, output_dir: str) -> str:
 
             if manager.has_tool("did_change_watched_files"):
                 try:
-                    await manager.call_tool("did_change_watched_files", {"path": output_dir})
+                    await manager.call_tool("did_change_watched_files", {"changes_json": "[]"})
                 except Exception:
                     pass
             return result
@@ -787,7 +787,7 @@ async def _reindex_bsl(path: str) -> str:
         return "ERROR: LSP backend not available — cannot trigger re-index."
 
     try:
-        result = await manager.call_tool("did_change_watched_files", {"path": reindex_path, "language": "bsl"})
+        result = await manager.call_tool("did_change_watched_files", {"changes_json": "[]"})
         response_text = result.content[0].text if result.content else ""
         return f"Re-indexing triggered for '{active.name}' at {reindex_path}.\n{response_text}"
     except Exception as exc:
@@ -853,7 +853,7 @@ async def _write_bsl(file: str, content: str) -> str:
         # Notify LSP about changed file
         if manager.has_tool("did_change_watched_files"):
             try:
-                await manager.call_tool("did_change_watched_files", {"path": dir_path})
+                await manager.call_tool("did_change_watched_files", {"changes_json": "[]"})
             except Exception:
                 pass
 
